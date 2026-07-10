@@ -125,6 +125,7 @@ Callable copies are deployment artifacts, not a second development source. Edit 
 ## Validate the repository
 
 ```bash
+python3 -m unittest discover -s tests -v
 python3 scripts/validate.py
 ```
 

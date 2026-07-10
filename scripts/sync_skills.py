@@ -164,24 +164,23 @@ def deploy_one(source: Path, target: Path, target_root: Path) -> str:
     )
     staged = container / target.name
     backup: Path | None = None
+    target_replaced = False
     try:
         shutil.copytree(source, staged, symlinks=True)
         if tree_digest(source) != tree_digest(staged):
             raise RuntimeError(f"staged copy verification failed for {target.name}")
 
         if path_exists(target):
-            backup = target_root / f".{target.name}.backup-{uuid.uuid4().hex}"
-            os.replace(target, backup)
+            backup_path = target_root / f".{target.name}.backup-{uuid.uuid4().hex}"
+            os.replace(target, backup_path)
+            backup = backup_path
         os.replace(staged, target)
+        target_replaced = True
 
         if tree_digest(source) != tree_digest(target):
             raise RuntimeError(f"deployed copy verification failed for {target.name}")
-
-        if backup is not None:
-            shutil.rmtree(backup)
-        return "installed" if state == "missing" else "updated"
     except Exception:
-        if path_exists(target):
+        if target_replaced and path_exists(target):
             remove_path(target)
         if backup is not None and path_exists(backup):
             os.replace(backup, target)
@@ -189,6 +188,10 @@ def deploy_one(source: Path, target: Path, target_root: Path) -> str:
     finally:
         if container.exists():
             shutil.rmtree(container)
+
+    if backup is not None:
+        shutil.rmtree(backup)
+    return "installed" if state == "missing" else "updated"
 
 
 def main() -> int:
