@@ -165,13 +165,12 @@ If the task does not fit cleanly, say so. Use the task shape as a conversation a
 
 ## Installation model
 
-Keep this repository as the source of truth. Register or link only the handrails useful in the target agent environment.
+Separate engineering source from agent runtime copies:
 
-For platforms that use a shared skills directory, a source-preserving symlink is one option:
-
-```bash
-mkdir -p ~/.agents/skills
-ln -s "$PWD/skills/verify-before-claim" ~/.agents/skills/verify-before-claim
-```
+- Develop, review, validate, and version the canonical handrails in this Git repository.
+- Deploy copies into the agent-facing skills root with `python3 scripts/sync_skills.py --apply`.
+- Detect runtime drift with `python3 scripts/sync_skills.py --check`.
+- Never treat a deployed copy as a second source of truth; edit the project and sync again.
+- The deployment manifest contains only the seven Agent Handrails skills, so unrelated skills in the target root are not managed.
 
 Every current skill sets `disable-model-invocation: true`. This disables ambient model selection, but it does not prevent a user or explicit harness from invoking the skill deliberately. Platform behavior varies, so verify how each agent interprets frontmatter before claiming compatibility.

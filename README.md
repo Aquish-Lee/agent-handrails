@@ -85,18 +85,31 @@ These are examples, not required workflows. Direct implementation plus verificat
 
 More examples live in [`playbooks/`](playbooks/README.md).
 
-## Use from a source checkout
+## Project source and callable copies
 
-Keep this repository as the source of truth, then register or link only the handrails you want in your agent environment.
+Keep the Git repository in an engineering workspace and treat `skills/` as the canonical source. Deploy copies into the local directory that Codex or another agent reads:
 
-A generic symlink example:
-
-```bash
-mkdir -p ~/.agents/skills
-ln -s "$PWD/skills/verify-before-claim" ~/.agents/skills/verify-before-claim
+```text
+~/Workspace/Projects/agent-handrails/skills/   # develop and review here
+                 ↓ explicit sync
+~/Workspace/Skills/<skill>/                    # agents invoke these copies
 ```
 
-Agent-specific installation instructions will be added as the project is validated across Codex, Claude Code, Cursor, Copilot, Gemini CLI, and other `SKILL.md`-compatible environments. Do not assume every platform interprets frontmatter identically.
+Check whether the callable copies match the project source:
+
+```bash
+python3 scripts/sync_skills.py --check
+```
+
+Install or update all seven managed handrails:
+
+```bash
+python3 scripts/sync_skills.py --apply
+```
+
+The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`. The sync script manages only the seven handrails declared by this repository; unrelated skills in the target directory are left untouched.
+
+Callable copies are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. Agent-specific registration instructions will be added as the project is validated across Codex, Claude Code, Cursor, Copilot, Gemini CLI, and other `SKILL.md`-compatible environments. Do not assume every platform interprets frontmatter identically.
 
 ## Validate the repository
 

@@ -25,6 +25,7 @@ REQUIRED_FILES = {
     "docs/workflow.md",
     "docs/harness-roadmap.md",
     "playbooks/README.md",
+    "scripts/sync_skills.py",
 }
 STALE_TERMS = (
     "Aquish",
