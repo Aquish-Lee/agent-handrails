@@ -1,0 +1,5 @@
+interface:
+  display_name: "Spec Lite"
+  short_description: "Turn converged intent into a lightweight outcome contract"
+policy:
+  allow_implicit_invocation: false

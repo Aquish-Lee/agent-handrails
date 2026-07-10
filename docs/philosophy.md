@@ -35,13 +35,20 @@ This reverses the common framework-first approach. The harness should be built o
 
 ## Explicit invocation
 
-Every current handrail sets:
+Every current handrail sets cross-platform frontmatter:
 
 ```yaml
 disable-model-invocation: true
 ```
 
-This means ambient semantic matching should not silently select it. Invocation must be explicit through one of two paths:
+Its Codex metadata also sets:
+
+```yaml
+policy:
+  allow_implicit_invocation: false
+```
+
+On platforms that support the respective metadata, ambient semantic matching should not silently select the skill. Invocation must be explicit through one of two paths:
 
 - a person requests the handrail;
 - an orchestrator/harness makes a visible, inspectable selection decision.

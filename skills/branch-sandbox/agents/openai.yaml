@@ -1,0 +1,5 @@
+interface:
+  display_name: "Branch Sandbox"
+  short_description: "Isolate risky or parallel agent work with rollback clarity"
+policy:
+  allow_implicit_invocation: false

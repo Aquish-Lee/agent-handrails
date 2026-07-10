@@ -1,0 +1,5 @@
+interface:
+  display_name: "Plan Lite"
+  short_description: "Create a compact strategy and execution map"
+policy:
+  allow_implicit_invocation: false

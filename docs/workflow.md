@@ -168,9 +168,9 @@ If the task does not fit cleanly, say so. Use the task shape as a conversation a
 Separate engineering source from agent runtime copies:
 
 - Develop, review, validate, and version the canonical handrails in this Git repository.
-- Deploy copies into the agent-facing skills root with `python3 scripts/sync_skills.py --apply`.
-- Detect runtime drift with `python3 scripts/sync_skills.py --check`.
+- Deploy copies into the agent-facing skills root and create Codex discovery pointers with `python3 scripts/sync_skills.py --apply --codex-link-root ~/.agents/skills`.
+- Detect runtime or discovery-link drift with `python3 scripts/sync_skills.py --check --codex-link-root ~/.agents/skills`.
 - Never treat a deployed copy as a second source of truth; edit the project and sync again.
 - The deployment manifest contains only the seven Agent Handrails skills, so unrelated skills in the target root are not managed.
 
-Every current skill sets `disable-model-invocation: true`. This disables ambient model selection, but it does not prevent a user or explicit harness from invoking the skill deliberately. Platform behavior varies, so verify how each agent interprets frontmatter before claiming compatibility.
+Every current skill sets `disable-model-invocation: true` for compatible platforms and `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` for Codex. These disable ambient model selection, but they do not prevent a user or explicit harness from invoking the skill deliberately. Platform behavior varies, so verify how each agent interprets metadata before claiming compatibility.

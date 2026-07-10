@@ -105,6 +105,22 @@ def main() -> int:
             errors.append(
                 f"{path.relative_to(ROOT)}: explicit invocation contract missing"
             )
+
+        openai_metadata = SKILLS / skill_name / "agents" / "openai.yaml"
+        if not openai_metadata.is_file():
+            errors.append(
+                f"{openai_metadata.relative_to(ROOT)}: missing Codex metadata"
+            )
+        else:
+            metadata_text = openai_metadata.read_text(encoding="utf-8")
+            if not re.search(
+                r"(?m)^\s*allow_implicit_invocation:\s*false\s*$",
+                metadata_text,
+            ):
+                errors.append(
+                    f"{openai_metadata.relative_to(ROOT)}: "
+                    "allow_implicit_invocation must be false"
+                )
         for term in STALE_TERMS:
             if term in text:
                 errors.append(f"{path.relative_to(ROOT)}: stale/forbidden term {term!r}")

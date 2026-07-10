@@ -1,0 +1,5 @@
+interface:
+  display_name: "Grill"
+  short_description: "Interrogate consequential uncertainty before non-trivial work"
+policy:
+  allow_implicit_invocation: false

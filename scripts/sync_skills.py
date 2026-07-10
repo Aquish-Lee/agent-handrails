@@ -18,6 +18,7 @@ SOURCE_ROOT = PROJECT_ROOT / "skills"
 DEFAULT_TARGET = Path(
     os.environ.get("AGENT_HANDRAILS_SKILLS_DIR", "~/Workspace/Skills")
 ).expanduser()
+DEFAULT_CODEX_LINK_ROOT = Path("~/.agents/skills").expanduser()
 SKILL_NAMES = (
     "branch-sandbox",
     "feedback-loop",
@@ -32,8 +33,8 @@ SKILL_NAMES = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Check or deploy the repository's canonical handrails into a local "
-            "Codex/agent skills directory."
+            "Check or deploy the repository's canonical handrails, with optional "
+            "Codex discovery symlinks."
         )
     )
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -52,6 +53,14 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_TARGET,
         help=f"deployment root (default: {DEFAULT_TARGET})",
+    )
+    parser.add_argument(
+        "--codex-link-root",
+        type=Path,
+        help=(
+            "also check/create Codex discovery symlinks, normally "
+            f"{DEFAULT_CODEX_LINK_ROOT}"
+        ),
     )
     return parser.parse_args()
 
@@ -114,6 +123,33 @@ def compare(source: Path, target: Path) -> str:
     return "up-to-date" if tree_digest(source) == tree_digest(target) else "different"
 
 
+def link_state(link: Path, deployed_target: Path) -> str:
+    if not path_exists(link):
+        return "missing"
+    if not link.is_symlink():
+        return "unmanaged-path-type"
+    return (
+        "up-to-date"
+        if link.resolve(strict=False) == deployed_target.resolve(strict=False)
+        else "different-target"
+    )
+
+
+def ensure_link(link: Path, deployed_target: Path) -> str:
+    state = link_state(link, deployed_target)
+    if state == "up-to-date":
+        return state
+    if state != "missing":
+        raise RuntimeError(
+            f"refusing to replace existing Codex discovery path: {link} ({state})"
+        )
+    link.symlink_to(deployed_target, target_is_directory=True)
+    if link_state(link, deployed_target) != "up-to-date":
+        link.unlink(missing_ok=True)
+        raise RuntimeError(f"Codex discovery link verification failed: {link}")
+    return "linked"
+
+
 def deploy_one(source: Path, target: Path, target_root: Path) -> str:
     state = compare(source, target)
     if state == "up-to-date":
@@ -158,6 +194,11 @@ def deploy_one(source: Path, target: Path, target_root: Path) -> str:
 def main() -> int:
     args = parse_args()
     target_root = args.target.expanduser().resolve()
+    codex_link_root = (
+        args.codex_link_root.expanduser().resolve()
+        if args.codex_link_root is not None
+        else None
+    )
 
     try:
         validate_source()
@@ -171,6 +212,11 @@ def main() -> int:
             state = compare(SOURCE_ROOT / name, target_root / name)
             print(f"{name}: {state}")
             all_current = all_current and state == "up-to-date"
+        if codex_link_root is not None:
+            for name in SKILL_NAMES:
+                state = link_state(codex_link_root / name, target_root / name)
+                print(f"codex-link/{name}: {state}")
+                all_current = all_current and state == "up-to-date"
         return 0 if all_current else 1
 
     target_root.mkdir(parents=True, exist_ok=True)
@@ -182,6 +228,16 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
+    if codex_link_root is not None:
+        codex_link_root.mkdir(parents=True, exist_ok=True)
+        try:
+            for name in SKILL_NAMES:
+                state = ensure_link(codex_link_root / name, target_root / name)
+                print(f"codex-link/{name}: {state}")
+        except (OSError, RuntimeError) as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+
     remaining = [
         name
         for name in SKILL_NAMES
@@ -191,7 +247,23 @@ def main() -> int:
         print(f"ERROR: deployment verification failed: {remaining}", file=sys.stderr)
         return 2
 
+    if codex_link_root is not None:
+        bad_links = [
+            name
+            for name in SKILL_NAMES
+            if link_state(codex_link_root / name, target_root / name)
+            != "up-to-date"
+        ]
+        if bad_links:
+            print(
+                f"ERROR: Codex link verification failed: {bad_links}",
+                file=sys.stderr,
+            )
+            return 2
+
     print(f"Deployment verified: {target_root}")
+    if codex_link_root is not None:
+        print(f"Codex discovery links verified: {codex_link_root}")
     return 0
 
 

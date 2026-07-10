@@ -1,0 +1,5 @@
+interface:
+  display_name: "Feedback Loop"
+  short_description: "Guide work with behavior, regression, smoke, and runtime evidence"
+policy:
+  allow_implicit_invocation: false

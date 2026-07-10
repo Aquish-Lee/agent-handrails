@@ -1,0 +1,5 @@
+interface:
+  display_name: "Verify Before Claim"
+  short_description: "Scope completion claims to fresh supporting evidence"
+policy:
+  allow_implicit_invocation: false

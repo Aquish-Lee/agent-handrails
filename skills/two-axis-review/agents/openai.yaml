@@ -1,0 +1,5 @@
+interface:
+  display_name: "Two-Axis Review"
+  short_description: "Review outcome fit and engineering quality separately"
+policy:
+  allow_implicit_invocation: false

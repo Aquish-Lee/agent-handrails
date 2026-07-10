@@ -37,13 +37,20 @@ These are a toolbox, not a mandatory chain.
 
 ## Manual-first does not mean manual-only
 
-Each skill currently carries:
+Each skill currently carries cross-platform frontmatter:
 
 ```yaml
 disable-model-invocation: true
 ```
 
-That disables ambient model matching: a platform should not silently inject a skill merely because it might be relevant. It does **not** forbid automation.
+For Codex, each skill also carries:
+
+```yaml
+policy:
+  allow_implicit_invocation: false
+```
+
+These disable ambient model matching on platforms that support the respective metadata: a platform should not silently inject a skill merely because it might be relevant. They do **not** forbid explicit automation.
 
 A user, playbook, or coding engineering harness may explicitly select a handrail. The selection should remain inspectable:
 
@@ -92,24 +99,28 @@ Keep the Git repository in an engineering workspace and treat `skills/` as the c
 ```text
 ~/Workspace/Projects/agent-handrails/skills/   # develop and review here
                  ↓ explicit sync
-~/Workspace/Skills/<skill>/                    # agents invoke these copies
+~/Workspace/Skills/<skill>/                    # callable deployment copies
+                 ↑ Codex follows discovery symlinks
+~/.agents/skills/<skill>                       # pointers only, never source
 ```
 
 Check whether the callable copies match the project source:
 
 ```bash
-python3 scripts/sync_skills.py --check
+python3 scripts/sync_skills.py --check \
+  --codex-link-root ~/.agents/skills
 ```
 
 Install or update all seven managed handrails:
 
 ```bash
-python3 scripts/sync_skills.py --apply
+python3 scripts/sync_skills.py --apply \
+  --codex-link-root ~/.agents/skills
 ```
 
-The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`. The sync script manages only the seven handrails declared by this repository; unrelated skills in the target directory are left untouched.
+The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`. `--codex-link-root` creates individual discovery symlinks because Codex scans `~/.agents/skills` for user-level skills. The sync script manages only the seven handrails declared by this repository; unrelated skills and pre-existing discovery paths are left untouched.
 
-Callable copies are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. Agent-specific registration instructions will be added as the project is validated across Codex, Claude Code, Cursor, Copilot, Gemini CLI, and other `SKILL.md`-compatible environments. Do not assume every platform interprets frontmatter identically.
+Callable copies are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. Each handrail includes `agents/openai.yaml` with `policy.allow_implicit_invocation: false`, so Codex can expose it for explicit invocation without ambient matching. Other agents may interpret metadata differently.
 
 ## Validate the repository
 
