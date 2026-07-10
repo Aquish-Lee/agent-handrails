@@ -92,35 +92,49 @@ These are examples, not required workflows. Direct implementation plus verificat
 
 More examples live in [`playbooks/`](playbooks/README.md).
 
-## Project source and callable copies
+## Project source and managed deployment
 
-Keep the Git repository in an engineering workspace and treat `skills/` as the canonical source. Deploy copies into the local directory that Codex or another agent reads:
+Keep the Git repository in an engineering workspace and treat `skills/` and any shared `runtime/` support as canonical source. The deployment root exposes stable skill entrypoints backed by complete, content-addressed bundles:
 
 ```text
-~/Workspace/Projects/agent-handrails/skills/   # develop and review here
-                 ↓ explicit sync
-~/Workspace/Skills/<skill>/                    # callable deployment copies
-                 ↑ Codex follows discovery symlinks
-~/.agents/skills/<skill>                       # pointers only, never source
+~/Workspace/Projects/agent-handrails/
+  skills/                                  # develop and review here
+  runtime/                                 # optional shared runtime support
+                  ↓ explicit sync
+~/Workspace/Skills/
+  .agent-handrails/
+    bundles/<content-id>/                  # retained complete bundles
+    current -> bundles/<content-id>        # single activation pointer
+  <skill> -> .agent-handrails/current/skills/<skill>
+                  ↑ Codex follows stable discovery symlinks
+~/.agents/skills/<skill> -> ~/Workspace/Skills/<skill>
 ```
 
-Check whether the callable copies match the project source:
+Check the managed deployment without writing:
 
 ```bash
 python3 scripts/sync_skills.py --check \
   --codex-link-root ~/.agents/skills
 ```
 
-Install or update all seven managed handrails:
+Install, migrate, or update all seven managed handrails:
 
 ```bash
 python3 scripts/sync_skills.py --apply \
   --codex-link-root ~/.agents/skills
 ```
 
-The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`. `--codex-link-root` creates individual discovery symlinks because Codex scans `~/.agents/skills` for user-level skills. The sync script manages only the seven handrails declared by this repository; unrelated skills and pre-existing discovery paths are left untouched.
+The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`; an explicit `--target` takes precedence. `--codex-link-root` is optional. When supplied, missing discovery symlinks are created, correct existing links are preserved, and conflicting paths cause the apply to stop without replacing them. Unrelated skills and discovery entries are never managed.
 
-Callable copies are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. Each handrail includes `agents/openai.yaml` with `policy.allow_implicit_invocation: false`, so Codex can expose it for explicit invocation without ambient matching. Other agents may interpret metadata differently.
+The first bundle-aware check of a complete legacy seven-directory installation reports `bundle/layout: migration-required` and exits with status `1`, even when every deployed skill matches the source. Running `--apply` preserves the legacy content as a retained bundle, replaces the seven public entries with stable symlinks, and leaves correct Codex discovery links unchanged. Partial, mixed, or conflicting legacy layouts are refused before mutation.
+
+Managed upgrades stage and verify the entire bundle before atomically replacing the single `current` pointer, so all seven skills change together. First installation and legacy migration modify multiple paths and are not atomic as a whole; caught failures are rolled back. A later apply recovers an intact migration journal when path ownership can be proven; ambiguous crash state is left untouched and reported instead of being guessed away. The deployer does not fsync every file and directory involved and therefore makes no persistence guarantee for sudden power loss.
+
+`--check` exits `0` when the requested deployment and discovery links are current, `1` for a recognized but non-current state such as a missing deployment, required migration, source drift, link drift, or pending recovery, and `2` when the source or managed layout cannot be safely interpreted. `--apply` exits `0` after successful verification and `2` when preflight refuses the layout or deployment fails. Human-readable status lines may evolve; scripts should use the exit status.
+
+Verified bundles are retained by default; this release performs no automatic pruning. To roll back, use a known-good revision that already contains the bundle-aware deployer, then run `--apply` and `--check` again. Do not use a pre-migration version of `sync_skills.py` against a managed bundle layout or edit the `current` link manually.
+
+Managed entrypoints and bundle contents are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. The v0.1 deployment helper supports Linux with Python 3.10 or newer. Each handrail includes `agents/openai.yaml` with `policy.allow_implicit_invocation: false`, so Codex can expose it for explicit invocation without ambient matching. Other agents may interpret metadata or symlink discovery differently.
 
 ## Validate the repository
 
