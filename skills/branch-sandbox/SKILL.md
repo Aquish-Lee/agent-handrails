@@ -11,6 +11,53 @@ Use branch/worktree isolation when the cost of a messy working tree, hard rollba
 
 This skill is about **process boundaries**: where the change is allowed to happen, how to diff it, how to abandon it safely, and how to bring it back when it is good.
 
+## Contract binding
+
+<!-- handrails-contract
+contract: usable-loop/v1
+role: workspace-isolator
+missing-outcome-reference: bootstrap-provisional
+authority-failure: stale-until-reconfirmed
+authority-failure-triggers: authority-inaccessible,authority-conflict,authority-revision-mismatch
+outcome-record: outcome-reference
+required-local-resources: none
+bootstrap-authority: provisional
+bootstrap-lifecycle: active
+bootstrap-currentness: fresh
+outcome-reference-output: complete
+identity-revision-separation: required
+revision-digest-claim: computed-only
+-->
+
+Carry the Outcome Reference that names what the sandbox is for. If none exists, create a task-local provisional reference from the current request with a stable Task ID, truthful source identity/locator, revision basis, compact snapshot, active lifecycle, fresh currentness, and explicit stale conditions. Do not invent a durable source or authoritative status.
+
+```text
+Contract: usable-loop/v1
+Task ID:
+Outcome Source kind: request | conversation | alignment-snapshot | issue | prd | spec | bug-repro | deployment-objective | other
+Outcome Source ID:
+Outcome Source locator:
+Outcome Revision:
+Revision basis:
+Outcome Authority: authoritative | provisional
+Authority basis:
+Outcome lifecycle: active | superseded
+Outcome snapshot:
+Outcome currentness: fresh | unknown | stale
+Supersedes, if any:
+Stale when:
+```
+
+When bootstrapping, populate and emit every field in this template; do not replace the record with an ID-only shorthand. When consuming a reference, preserve its exact values in the Sandbox result.
+
+Bootstrap state is always: authority `provisional`, lifecycle `active`, currentness `fresh`.
+
+Keep Task ID and Outcome Source ID independent of Outcome Revision: do not put `r1`, a digest, or another revision suffix into either identity.
+
+If the designated authority is inaccessible, conflicts with another designated source, or its revision mismatches, mark the reference provisional/stale and treat dependent evidence and claims as stale until reconciliation or reconfirmation. Never choose between authorities by recency or durability. A local Capsule is orientation only, never the Outcome Source.
+
+Never describe an Outcome Revision as a hash or digest unless it was actually computed over identified canonical bytes; otherwise use an honest task-local opaque revision such as `r1`.
+
 ## Rules
 
 - Do not let ambient model matching select this skill. Invocation must come from the user or an explicit orchestrator/harness decision.

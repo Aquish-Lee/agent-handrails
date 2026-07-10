@@ -9,6 +9,53 @@ argument-hint: "feature/spec/bugfix to plan"
 
 Create enough plan to make implementation reliable, without Superpowers-style exhaustive ceremony or a full formal spec.
 
+## Contract binding
+
+<!-- handrails-contract
+contract: usable-loop/v1
+role: execution-planner
+missing-outcome-reference: bootstrap-provisional
+authority-failure: stale-until-reconfirmed
+authority-failure-triggers: authority-inaccessible,authority-conflict,authority-revision-mismatch
+outcome-record: outcome-reference
+required-local-resources: none
+bootstrap-authority: provisional
+bootstrap-lifecycle: active
+bootstrap-currentness: fresh
+outcome-reference-output: complete
+identity-revision-separation: required
+revision-digest-claim: computed-only
+-->
+
+Echo the exact input Outcome Reference; a plan is not automatically a new Outcome Source. If no reference exists, bootstrap one from the current request with a task-local stable Task ID, a truthful request/conversation locator, `provisional` authority, a compact snapshot, and explicit stale conditions.
+
+```text
+Contract: usable-loop/v1
+Task ID:
+Outcome Source kind: request | conversation | alignment-snapshot | issue | prd | spec | bug-repro | deployment-objective | other
+Outcome Source ID:
+Outcome Source locator:
+Outcome Revision:
+Revision basis:
+Outcome Authority: authoritative | provisional
+Authority basis:
+Outcome lifecycle: active | superseded
+Outcome snapshot:
+Outcome currentness: fresh | unknown | stale
+Supersedes, if any:
+Stale when:
+```
+
+When bootstrapping, populate and emit every field in this template; do not replace the record with an ID-only shorthand. When consuming a reference, echo its exact values rather than minting a plan-owned revision.
+
+Bootstrap state is always: authority `provisional`, lifecycle `active`, currentness `fresh`.
+
+Keep Task ID and Outcome Source ID independent of Outcome Revision: do not put `r1`, a digest, or another revision suffix into either identity.
+
+If planning exposes a material outcome change, reconcile or reconfirm a new Outcome Revision before presenting the plan as current. If authority is inaccessible, conflicts with another designated source, or the revision mismatches, mark the reference provisional/stale and stale dependent boundary seeds, evidence, and claims. Never choose between authorities by recency or durability. A local Capsule is orientation only, never the Outcome Source.
+
+Never describe an Outcome Revision as a hash or digest unless you actually computed it over identified canonical bytes; otherwise use an honest task-local opaque revision such as `r1`.
+
 ## Rules
 
 - Do not let ambient model matching select this skill. Invocation must come from the user or an explicit orchestrator/harness decision.
@@ -21,12 +68,13 @@ Create enough plan to make implementation reliable, without Superpowers-style ex
 - Include verification for each task and a final verification matrix.
 - Include rollback/isolation notes when the change touches deployment, data, broad refactors, or production-like paths.
 - Do not paste full implementation code unless API shape, algorithm, or test shape is the thing being decided.
+- Treat planned files and paths as discovery hypotheses, never as a closed allowlist or the final Review Boundary.
 
 ## Relationship to specs
 
-This skill consumes the best available outcome source and turns it into an implementation plan. It does not automatically create a formal spec.
+This skill consumes the currently designated Outcome Reference and turns it into an implementation plan. When none has been designated, it uses an explicit provisional reference rather than choosing an authority on the user's behalf. It does not automatically create a formal spec.
 
-Use `spec-lite` first when the missing piece is a stable outcome contract: behavior rules, interface/data contracts, acceptance criteria, domain invariants, or durable handoff. Otherwise, keep the live outcome source in the current conversation, an `grill` alignment snapshot, an issue/PRD, or this plan's acceptance criteria.
+Use `spec-lite` first when the missing piece is a stable outcome contract: behavior rules, interface/data contracts, acceptance criteria, domain invariants, or durable handoff. Otherwise, let the Outcome Reference point to the current conversation, a `grill` alignment snapshot, an issue/PRD, or the current request; do not promote this plan's restatement into authority.
 
 ## Before writing the plan
 
@@ -44,6 +92,22 @@ Important gaps include unclear acceptance criteria, unknown target environment, 
 ```markdown
 # <Task> Plan
 
+## Outcome Reference
+- Contract: usable-loop/v1
+- Task ID:
+- Outcome Source kind:
+- Outcome Source ID:
+- Outcome Source locator:
+- Outcome Revision:
+- Revision basis:
+- Outcome Authority: authoritative | provisional
+- Authority basis:
+- Outcome lifecycle: active | superseded
+- Outcome snapshot:
+- Outcome currentness: fresh | unknown | stale
+- Supersedes, if any:
+- Stale when:
+
 Task shape:
 Goal:
 Acceptance criteria:
@@ -53,6 +117,22 @@ Open questions / known unknowns:
 Blast radius:
 Primary seams:
 Isolation / rollback:
+
+## Review Boundary Seed
+- Outcome binding: Task ID + Outcome Source ID + Outcome Revision
+- Expected logical changes:
+- Dependent or generated changes:
+- Authorization guardrails:
+- Known pre-existing changes:
+- Participating workspaces:
+- Base and recovery hints:
+- Declared ignored artifacts, if any:
+- Open boundary questions:
+- Path semantics: hypotheses-not-allowlist
+
+The seed is a planning hypothesis, not an allowlist or final Review Boundary. Omitted paths are not proven unrelated. Known pre-existing changes are exclusion candidates, not exclusions. Unexpected task-created changes remain reviewable as scope creep. Only review-time inventory and classification may produce the final boundary.
+
+List ignored artifacts only when the user, Outcome Source, or task record explicitly declares them. Do not infer common cache, secret, virtual-environment, or generated paths as declarations.
 
 ## Implementation strategy
 <short explanation of chosen approach and why it is the smallest professional path>
@@ -65,7 +145,7 @@ Scope:
 Files:
 Steps:
 Verification:
-Change boundary:
+Logical Change Unit / integration boundary:
 
 ### 2. ...
 
@@ -120,6 +200,8 @@ Superseded by:
 Stale when:
 ```
 
+These lifecycle timestamps do not replace the Outcome Revision in the plan's Outcome Reference.
+
 For Codex App workflows, prefer using the main planning conversation as the living plan context, then fork/derive child sessions for spec design or implementation. Feed child-session findings back into the main planning conversation instead of accumulating unmaintained plan files.
 
 ## Planning heuristics
@@ -131,4 +213,4 @@ For Codex App workflows, prefer using the main planning conversation as the livi
 - Let task count emerge from complexity. For goal-mode or refactor work, plan by milestone/slice rather than compressing everything into a fixed number of tasks.
 - If multiple agents will execute the plan, include enough context per task that a fresh agent can work without reading the whole conversation.
 - For deployment/migration plans, include exact commands, config readback, health checks, log checks, and rollback commands.
-- Use `Change boundary` to describe the intended commit/review/rollback boundary. Suggest actual commit messages only when git history design matters.
+- Use `Logical Change Unit / integration boundary` to describe the intended commit, review, and rollback slice. It is not the task's final Review Boundary. Suggest actual commit messages only when git history design matters.

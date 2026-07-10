@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ MODULE_PATH = PROJECT_ROOT / "scripts" / "validate.py"
 SPEC = importlib.util.spec_from_file_location("validate", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 validate = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = validate
 SPEC.loader.exec_module(validate)
 
 

@@ -42,7 +42,7 @@ Expected behavior:
 - identify the task shape without rigid classification;
 - state which uncertainty, boundary, or evidence motivates the recommendation;
 - allow the user to accept, reject, or redirect;
-- preserve the current conversation as the live source of truth unless a durable artifact helps.
+- preserve the current conversation as the provisional Outcome Source unless an explicitly designated durable source helps.
 
 ## Layer 3 — Explicit orchestration harness
 
@@ -51,7 +51,7 @@ The harness may select and execute handrails without asking at every transition,
 Minimum state model:
 
 - **Task context** — goal, constraints, non-goals, current task shape;
-- **Outcome source** — conversation, issue, PRD, spec, bug repro, deployment objective;
+- **Outcome reference** — Task ID plus the exact source identity/revision, authority, snapshot, currentness, and stale conditions;
 - **Work boundary** — repository, branch/worktree, allowed scope, rollback path;
 - **Decision trace** — selected/skipped handrails and reasons;
 - **Evidence ledger** — commands, outputs, reviews, runtime observations;
@@ -67,7 +67,7 @@ Autonomy does not remove gates. It changes who operates them.
 A run should still return an inspectable evidence bundle:
 
 ```text
-Outcome source
+Outcome Reference
 Selected and skipped handrails
 Work boundary
 Changes made
@@ -96,7 +96,7 @@ It should stop adding process when remaining uncertainty no longer changes those
 
 A future harness should return control to a human when, for example:
 
-- outcome sources conflict;
+- designated Outcome Sources conflict;
 - multiple irreversible approaches remain materially different;
 - required credentials, production access, or destructive actions are involved;
 - available evidence cannot support the requested claim;

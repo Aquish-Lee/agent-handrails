@@ -45,10 +45,22 @@ There is no mandatory spec artifact for every task.
 - For small tasks and many bug fixes, the "spec" may simply be the current conversation: goal, non-goals, acceptance criteria, bug repro, or an alignment snapshot.
 - `grill` can produce an **Alignment Snapshot** when uncertainty is resolved, but it does not create a formal spec by default.
 - `spec-lite` can turn a converged alignment snapshot, issue, PRD, bug repro, or behavior description into a lightweight outcome contract when formalization is useful.
-- `plan-lite` turns the outcome source into an execution map: acceptance criteria, assumptions, seams, tasks, and verification. It is a plan, not automatically a formal spec.
+- `plan-lite` turns the exact Outcome Reference into an execution map: acceptance criteria, assumptions, seams, tasks, and verification. It is a plan, not automatically a formal spec.
 - Create a saved formal spec only when it materially helps: multi-session coordination, durable handoff, complex domain behavior, high-risk acceptance criteria, or explicit user request.
 - If a saved spec is created, mark currentness/status so it does not become stale authority.
-- Review should use the best available **Outcome source**: issue, PRD, saved spec, plan, conversation alignment snapshot, bug repro, deployment objective, or explicit "no outcome source". Do not invent a spec when none exists.
+- Review should use the current exact **Outcome Reference** designated by the task authority. If none exists, create an explicit provisional reference from the current request; do not choose a supposedly "best" authority or invent a spec.
+
+## Outcome continuity
+
+All seven handrails use `usable-loop/v1`. A stable Task ID and exact Outcome Reference carry source identity, revision, authority basis, compact snapshot, lifecycle, currentness, supersession, and stale conditions across optional skill transitions.
+
+- A plan echoes its input Outcome Reference; it does not become authority merely by restating acceptance criteria.
+- A saved spec is durable but remains provisional unless the designated authority confirms it.
+- A material outcome change creates a new revision and explicit supersession.
+- An inaccessible or mismatched authority makes dependent boundary seeds, evidence, and claims stale until reconciliation.
+- Every skill can bootstrap a provisional reference when directly invoked, so no gateway or mandatory first step is required.
+
+See `CONTEXT.md` for domain vocabulary and `docs/contracts/usable-loop-v1.md` for canonical semantics.
 
 ## Task shapes, not rigid levels
 
@@ -168,7 +180,7 @@ If the task does not fit cleanly, say so. Use the task shape as a conversation a
 Separate engineering source from agent runtime copies:
 
 - Develop, review, validate, and version the canonical handrails in this Git repository.
-- Deploy copies into the agent-facing skills root and create Codex discovery pointers with `python3 scripts/sync_skills.py --apply --codex-link-root ~/.agents/skills`.
+- Deploy complete versioned bundles behind stable agent-facing entrypoints and create Codex discovery pointers with `python3 scripts/sync_skills.py --apply --codex-link-root ~/.agents/skills`.
 - Detect runtime or discovery-link drift with `python3 scripts/sync_skills.py --check --codex-link-root ~/.agents/skills`.
 - Never treat a deployed copy as a second source of truth; edit the project and sync again.
 - The deployment manifest contains only the seven Agent Handrails skills, so unrelated skills in the target root are not managed.

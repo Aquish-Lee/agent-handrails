@@ -27,13 +27,15 @@ Agent Handrails takes a different path:
 |---|---|
 | [`grill`](skills/grill/SKILL.md) | Clarify consequential uncertainty without forcing a design ceremony. |
 | [`spec-lite`](skills/spec-lite/SKILL.md) | Create a compact outcome contract only when conversation context is insufficient. |
-| [`plan-lite`](skills/plan-lite/SKILL.md) | Turn an outcome source into a strategy and execution map. |
+| [`plan-lite`](skills/plan-lite/SKILL.md) | Turn an exact Outcome Reference into a strategy and execution map. |
 | [`feedback-loop`](skills/feedback-loop/SKILL.md) | Use tests, repros, smoke checks, and runtime evidence to stay aligned with real behavior. |
 | [`two-axis-review`](skills/two-axis-review/SKILL.md) | Review outcome fit and engineering quality separately, with evidence reported explicitly. |
 | [`verify-before-claim`](skills/verify-before-claim/SKILL.md) | Keep completion claims no broader than fresh evidence. |
 | [`branch-sandbox`](skills/branch-sandbox/SKILL.md) | Isolate risky or parallel work with explicit boundaries and rollback paths. |
 
 These are a toolbox, not a mandatory chain.
+
+All seven handrails share the versioned `usable-loop/v1` handoff contract. A stable Task ID and exact Outcome Reference preserve outcome identity, authority, currentness, and invalidation across optional transitions, while every skill remains a valid direct entry point. See [domain context](CONTEXT.md) and the [contract semantics](docs/contracts/usable-loop-v1.md).
 
 ## Manual-first does not mean manual-only
 

@@ -9,14 +9,61 @@ argument-hint: "fixed point, PR, branch, or diff to review"
 
 Review changes without mixing two questions: did we build the right outcome, and did we build it well? Verification evidence is reported separately so "looks right" does not become a success claim.
 
+## Contract binding
+
+<!-- handrails-contract
+contract: usable-loop/v1
+role: boundary-reviewer
+missing-outcome-reference: bootstrap-provisional
+authority-failure: stale-until-reconfirmed
+authority-failure-triggers: authority-inaccessible,authority-conflict,authority-revision-mismatch
+outcome-record: outcome-reference
+required-local-resources: references/smell-baseline.md
+bootstrap-authority: provisional
+bootstrap-lifecycle: active
+bootstrap-currentness: fresh
+outcome-reference-output: complete
+identity-revision-separation: required
+revision-digest-claim: computed-only
+-->
+
+Review against the exact Outcome Reference when one exists. If direct entry has no reference, create a task-local provisional reference from the current request with a stable Task ID, truthful source identity/locator, revision basis, compact snapshot, active lifecycle, fresh currentness, and explicit stale conditions. Do not invent a spec or authoritative locator.
+
+```text
+Contract: usable-loop/v1
+Task ID:
+Outcome Source kind: request | conversation | alignment-snapshot | issue | prd | spec | bug-repro | deployment-objective | other
+Outcome Source ID:
+Outcome Source locator:
+Outcome Revision:
+Revision basis:
+Outcome Authority: authoritative | provisional
+Authority basis:
+Outcome lifecycle: active | superseded
+Outcome snapshot:
+Outcome currentness: fresh | unknown | stale
+Supersedes, if any:
+Stale when:
+```
+
+When bootstrapping, populate and emit every field in this template; do not replace the record with an ID-only shorthand. When consuming a reference, preserve its exact values in the review result.
+
+Bootstrap state is always: authority `provisional`, lifecycle `active`, currentness `fresh`.
+
+Keep Task ID and Outcome Source ID independent of Outcome Revision: do not put `r1`, a digest, or another revision suffix into either identity.
+
+If the designated authority is inaccessible, conflicts with another designated source, or its revision mismatches, mark the reference provisional/stale and do not let prior evidence or claims support approval until reconciliation or reconfirmation. Never choose between authorities by recency or durability. A local Capsule is orientation only, never the Outcome Source.
+
+Never describe an Outcome Revision as a hash or digest unless it was actually computed over identified canonical bytes; otherwise use an honest task-local opaque revision such as `r1`.
+
 ## Inputs
 
-- Fixed point: commit, branch, tag, PR base, worktree base, or `HEAD~N`.
-- Outcome source: issue, PRD, `spec-lite` output, plan, conversation alignment snapshot, goal acceptance criteria, bug repro, deployment objective, or explicit "no outcome source".
+- Outcome Reference: the exact `usable-loop/v1` record. Its locator may designate an issue, PRD, spec, conversation alignment snapshot, goal acceptance criteria, bug repro, or deployment objective.
+- Base revision: commit, branch, tag, PR base, worktree base, or `HEAD~N` used as one candidate-discovery anchor; it is not the complete Review Boundary.
 - Standards source: repo docs, existing patterns, linters, type system, architecture decisions, and smell baseline. Use `references/smell-baseline.md` when deeper smell vocabulary is needed.
 - Evidence source: commands already run, test output, build output, smoke checks, logs, health/readback results.
 
-If the fixed point is missing, ask for it. If there is no formal spec, review against the best available outcome source instead of pretending Spec is not assessable.
+If the Outcome Reference is missing, bootstrap the complete provisional record above. A plan, spec, or latest file becomes the designated source only through that reference; do not select one as authority by preference. A formal spec is not required.
 
 ## Optional parallel review
 

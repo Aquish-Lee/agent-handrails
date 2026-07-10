@@ -11,6 +11,53 @@ Evidence before claims. Use this before saying work is done, fixed, passing, dep
 
 This skill verifies the **claim being made**, not the agent's confidence. The final wording must be no broader than the evidence.
 
+## Contract binding
+
+<!-- handrails-contract
+contract: usable-loop/v1
+role: claim-gate
+missing-outcome-reference: bootstrap-provisional
+authority-failure: stale-until-reconfirmed
+authority-failure-triggers: authority-inaccessible,authority-conflict,authority-revision-mismatch
+outcome-record: outcome-reference
+required-local-resources: none
+bootstrap-authority: provisional
+bootstrap-lifecycle: active
+bootstrap-currentness: fresh
+outcome-reference-output: complete
+identity-revision-separation: required
+revision-digest-claim: computed-only
+-->
+
+Bind the claim to an exact Outcome Reference. If direct entry has no reference, create a task-local provisional one from the current request with a stable Task ID, truthful source identity/locator, revision basis, compact snapshot, active lifecycle, fresh currentness, and explicit stale conditions. Do not invent a durable source or authoritative status.
+
+```text
+Contract: usable-loop/v1
+Task ID:
+Outcome Source kind: request | conversation | alignment-snapshot | issue | prd | spec | bug-repro | deployment-objective | other
+Outcome Source ID:
+Outcome Source locator:
+Outcome Revision:
+Revision basis:
+Outcome Authority: authoritative | provisional
+Authority basis:
+Outcome lifecycle: active | superseded
+Outcome snapshot:
+Outcome currentness: fresh | unknown | stale
+Supersedes, if any:
+Stale when:
+```
+
+When bootstrapping, populate and emit every field in this template; do not replace the record with an ID-only shorthand. When consuming a reference, preserve its exact values in the verification result.
+
+Bootstrap state is always: authority `provisional`, lifecycle `active`, currentness `fresh`.
+
+Keep Task ID and Outcome Source ID independent of Outcome Revision: do not put `r1`, a digest, or another revision suffix into either identity.
+
+If the designated authority is inaccessible, conflicts with another designated source, or its revision mismatches, mark the reference provisional/stale and treat dependent evidence and claims as stale until reconciliation or reconfirmation. Never choose between authorities by recency or durability. A local Capsule may restore orientation but cannot restore authority or freshness.
+
+Never describe an Outcome Revision as a hash or digest unless it was actually computed over identified canonical bytes; otherwise use an honest task-local opaque revision such as `r1`.
+
 ## Rules
 
 - Do not let ambient model matching select this skill. Invocation must come from the user or an explicit orchestrator/harness decision.
@@ -138,9 +185,25 @@ Useful evidence:
 ## Gate format
 
 ````markdown
+## Outcome Reference
+- Contract: usable-loop/v1
+- Task ID:
+- Outcome Source kind:
+- Outcome Source ID:
+- Outcome Source locator:
+- Outcome Revision:
+- Revision basis:
+- Outcome Authority: authoritative | provisional
+- Authority basis:
+- Outcome lifecycle: active | superseded
+- Outcome snapshot:
+- Outcome currentness: fresh | unknown | stale
+- Supersedes, if any:
+- Stale when:
+
 ## Claim to verify
 - Claim:
-- Outcome source / acceptance criteria:
+- Exact Outcome Reference / acceptance criteria:
 - Environment:
 - Freshness requirement:
 

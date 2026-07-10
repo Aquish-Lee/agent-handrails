@@ -55,7 +55,7 @@ On platforms that support the respective metadata, ambient semantic matching sho
 
 An explicit orchestrator decision should record at least:
 
-- the task and current outcome source;
+- the task and current Outcome Reference;
 - why this handrail changes the next decision or evidence;
 - the expected output or stop condition;
 - what will happen if the handrail cannot produce useful evidence;
@@ -85,7 +85,7 @@ The second form adapts better to task shape, project maturity, and model capabil
 The same task should not receive the same autonomy under every condition. A harness should consider:
 
 - model/tool capability;
-- clarity and durability of the outcome source;
+- clarity, authority, and currentness of the Outcome Reference;
 - repository feedback quality;
 - blast radius and reversibility;
 - isolation and rollback options;
@@ -104,7 +104,7 @@ A future harness should make these visible:
 - selected handrails and reasons;
 - skipped handrails and reasons;
 - worktree/branch/sandbox boundary;
-- current outcome source;
+- current Outcome Reference;
 - evidence collected so far;
 - claims supported and unsupported;
 - unresolved risks and escalation points.

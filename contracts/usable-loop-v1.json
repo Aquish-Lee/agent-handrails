@@ -1,0 +1,584 @@
+{
+  "contract": "usable-loop/v1",
+  "schema_version": 1,
+  "status": "active",
+  "managed_skills": [
+    "branch-sandbox",
+    "feedback-loop",
+    "grill",
+    "plan-lite",
+    "spec-lite",
+    "two-axis-review",
+    "verify-before-claim"
+  ],
+  "enums": {
+    "authority_failure": [
+      "stale-until-reconfirmed"
+    ],
+    "claim_status": [
+      "supported",
+      "unsupported",
+      "blocked",
+      "stale"
+    ],
+    "ignored_artifact_declaration": [
+      "explicit-only"
+    ],
+    "identity_revision_separation": [
+      "required"
+    ],
+    "missing_outcome_reference": [
+      "bootstrap-provisional"
+    ],
+    "outcome_authority": [
+      "authoritative",
+      "provisional"
+    ],
+    "outcome_freshness": [
+      "fresh",
+      "unknown",
+      "stale"
+    ],
+    "outcome_lifecycle": [
+      "active",
+      "superseded"
+    ],
+    "outcome_reference_output": [
+      "complete"
+    ],
+    "review_classification": [
+      "include-required",
+      "include-scope-creep",
+      "include-inherited-dependency",
+      "exclude-proven-unrelated",
+      "unresolved"
+    ],
+    "revision_digest_claim": [
+      "computed-only"
+    ],
+    "record_availability": [
+      "active",
+      "planned"
+    ],
+    "skill_role": [
+      "boundary-reviewer",
+      "claim-gate",
+      "evidence-builder",
+      "execution-planner",
+      "outcome-aligner",
+      "outcome-contract-author",
+      "workspace-isolator"
+    ],
+    "source_kind": [
+      "request",
+      "conversation",
+      "alignment-snapshot",
+      "issue",
+      "prd",
+      "spec",
+      "bug-repro",
+      "deployment-objective",
+      "other"
+    ],
+    "workspace_role": [
+      "primary",
+      "dependency",
+      "generated",
+      "verification"
+    ]
+  },
+  "policies": {
+    "authority-failure": {
+      "enum": "authority_failure",
+      "default": "stale-until-reconfirmed",
+      "triggers": [
+        "authority-inaccessible",
+        "authority-conflict",
+        "authority-revision-mismatch"
+      ],
+      "effects": {
+        "outcome_authority": "provisional",
+        "outcome_currentness": "stale",
+        "dependent_boundary_seed": "stale",
+        "dependent_evidence": "stale",
+        "dependent_claims": "stale"
+      },
+      "recovery": "reconcile-or-reconfirm"
+    },
+    "missing-outcome-reference": {
+      "enum": "missing_outcome_reference",
+      "default": "bootstrap-provisional",
+      "produces": "outcome-reference",
+      "required_authority": "provisional",
+      "required_lifecycle": "active",
+      "required_currentness": "fresh"
+    },
+    "ignored-artifact-declaration": {
+      "enum": "ignored_artifact_declaration",
+      "default": "explicit-only"
+    },
+    "revision-integrity": {
+      "enum": "revision_digest_claim",
+      "default": "computed-only",
+      "fallback": "task-local-opaque-revision"
+    },
+    "identity-revision-separation": {
+      "enum": "identity_revision_separation",
+      "default": "required"
+    },
+    "outcome-reference-output": {
+      "enum": "outcome_reference_output",
+      "default": "complete"
+    }
+  },
+  "records": {
+    "alignment-snapshot": {
+      "availability": "active",
+      "required_fields": [
+        "outcome_reference",
+        "task_shape",
+        "goal",
+        "non_goals",
+        "chosen_direction",
+        "key_constraints",
+        "decisions_resolved",
+        "open_risks",
+        "verification_signals",
+        "suggested_next_skill"
+      ],
+      "optional_fields": [],
+      "markdown_labels": {
+        "outcome_reference": "### Outcome Reference",
+        "task_shape": "Task shape / framing:",
+        "goal": "Goal:",
+        "non_goals": "Non-goals:",
+        "chosen_direction": "Chosen direction:",
+        "key_constraints": "Key constraints:",
+        "decisions_resolved": "Decisions resolved:",
+        "open_risks": "Open risks or unknowns:",
+        "verification_signals": "Verification signals:",
+        "suggested_next_skill": "Suggested next skill:"
+      },
+      "producers": [
+        "grill"
+      ]
+    },
+    "checkpoint": {
+      "availability": "planned",
+      "required_fields": [
+        "task_id",
+        "outcome_reference",
+        "boundary_state",
+        "done",
+        "next",
+        "blockers",
+        "decision_delta",
+        "evidence_delta",
+        "supported_claims",
+        "still_unverified",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "delete_when"
+      ],
+      "producers": [
+        "feedback-loop"
+      ]
+    },
+    "claim-record": {
+      "availability": "planned",
+      "required_fields": [
+        "claim_id",
+        "task_id",
+        "outcome_revision",
+        "claim",
+        "evidence_ids",
+        "status",
+        "scope_limit",
+        "stale_when"
+      ],
+      "optional_fields": [],
+      "field_enums": {
+        "status": "claim_status"
+      },
+      "producers": [
+        "verify-before-claim"
+      ]
+    },
+    "code-state-token": {
+      "availability": "planned",
+      "required_fields": [
+        "provider",
+        "repository_identity",
+        "workspace_identity",
+        "base_revision",
+        "exact_revision",
+        "conflict_state",
+        "review_boundary_digest",
+        "tracked_state_fingerprint",
+        "included_untracked_fingerprints",
+        "relevant_environment",
+        "captured_at"
+      ],
+      "optional_fields": [
+        "task_change_identities",
+        "recovery_identity"
+      ],
+      "producers": [
+        "feedback-loop",
+        "two-axis-review",
+        "verify-before-claim"
+      ]
+    },
+    "evidence-record": {
+      "availability": "planned",
+      "required_fields": [
+        "evidence_id",
+        "task_id",
+        "outcome_revision",
+        "review_boundary_digest",
+        "code_state_token",
+        "environment",
+        "check",
+        "observed_result",
+        "scope",
+        "freshness",
+        "captured_at"
+      ],
+      "optional_fields": [],
+      "field_enums": {
+        "freshness": "outcome_freshness"
+      },
+      "producers": [
+        "feedback-loop"
+      ]
+    },
+    "implementation-plan": {
+      "availability": "active",
+      "required_fields": [
+        "outcome_reference",
+        "goal",
+        "acceptance_criteria",
+        "non_goals",
+        "implementation_strategy",
+        "review_boundary_seed",
+        "tasks",
+        "verification_matrix"
+      ],
+      "optional_fields": [
+        "assumptions",
+        "open_questions",
+        "isolation_rollback"
+      ],
+      "markdown_labels": {
+        "outcome_reference": "## Outcome Reference",
+        "goal": "Goal:",
+        "acceptance_criteria": "Acceptance criteria:",
+        "non_goals": "Non-goals:",
+        "implementation_strategy": "## Implementation strategy",
+        "review_boundary_seed": "## Review Boundary Seed",
+        "tasks": "## Tasks",
+        "verification_matrix": "## Verification matrix"
+      },
+      "producers": [
+        "plan-lite"
+      ]
+    },
+    "outcome-contract": {
+      "availability": "active",
+      "required_fields": [
+        "outcome_reference",
+        "goal",
+        "non_goals",
+        "desired_behavior",
+        "constraints_and_risks",
+        "acceptance_criteria",
+        "verification_signals",
+        "assumptions",
+        "open_questions",
+        "implementation_readiness"
+      ],
+      "optional_fields": [],
+      "markdown_labels": {
+        "outcome_reference": "Contract: usable-loop/v1",
+        "goal": "## Goal",
+        "non_goals": "## Non-goals",
+        "desired_behavior": "## Desired behavior",
+        "constraints_and_risks": "## Constraints and risks",
+        "acceptance_criteria": "## Acceptance criteria",
+        "verification_signals": "## Verification signals",
+        "assumptions": "## Assumptions",
+        "open_questions": "## Open questions",
+        "implementation_readiness": "Implementation readiness:"
+      },
+      "producers": [
+        "spec-lite"
+      ]
+    },
+    "outcome-reference": {
+      "availability": "active",
+      "required_fields": [
+        "contract",
+        "task_id",
+        "source_kind",
+        "source_id",
+        "source_locator",
+        "outcome_revision",
+        "revision_basis",
+        "authority",
+        "authority_basis",
+        "lifecycle",
+        "snapshot",
+        "currentness",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "supersedes",
+        "observed_at"
+      ],
+      "markdown_labels": {
+        "contract": "Contract: usable-loop/v1",
+        "task_id": "Task ID:",
+        "source_kind": "Outcome Source kind:",
+        "source_id": "Outcome Source ID:",
+        "source_locator": "Outcome Source locator:",
+        "outcome_revision": "Outcome Revision:",
+        "revision_basis": "Revision basis:",
+        "authority": "Outcome Authority:",
+        "authority_basis": "Authority basis:",
+        "lifecycle": "Outcome lifecycle:",
+        "snapshot": "Outcome snapshot:",
+        "currentness": "Outcome currentness:",
+        "stale_when": "Stale when:"
+      },
+      "field_enums": {
+        "source_kind": "source_kind",
+        "authority": "outcome_authority",
+        "lifecycle": "outcome_lifecycle",
+        "currentness": "outcome_freshness"
+      },
+      "producers": [
+        "branch-sandbox",
+        "feedback-loop",
+        "grill",
+        "plan-lite",
+        "spec-lite",
+        "two-axis-review",
+        "verify-before-claim"
+      ],
+      "primary_producers": [
+        "grill",
+        "spec-lite"
+      ]
+    },
+    "review-boundary": {
+      "availability": "planned",
+      "required_fields": [
+        "task_id",
+        "outcome_revision",
+        "participating_workspaces",
+        "candidate_inventory",
+        "classifications",
+        "boundary_digest",
+        "unresolved_items",
+        "captured_at"
+      ],
+      "optional_fields": [],
+      "field_enums": {
+        "classifications": "review_classification"
+      },
+      "producers": [
+        "two-axis-review"
+      ]
+    },
+    "review-boundary-seed": {
+      "availability": "active",
+      "required_fields": [
+        "outcome_binding",
+        "expected_logical_changes",
+        "dependent_or_generated_changes",
+        "authorization_guardrails",
+        "known_preexisting_changes",
+        "participating_workspaces",
+        "base_and_recovery_hints",
+        "open_boundary_questions",
+        "path_semantics"
+      ],
+      "optional_fields": [
+        "declared_ignored_artifacts"
+      ],
+      "markdown_labels": {
+        "outcome_binding": "Outcome binding:",
+        "expected_logical_changes": "Expected logical changes:",
+        "dependent_or_generated_changes": "Dependent or generated changes:",
+        "authorization_guardrails": "Authorization guardrails:",
+        "known_preexisting_changes": "Known pre-existing changes:",
+        "participating_workspaces": "Participating workspaces:",
+        "base_and_recovery_hints": "Base and recovery hints:",
+        "open_boundary_questions": "Open boundary questions:",
+        "path_semantics": "Path semantics: hypotheses-not-allowlist"
+      },
+      "constants": {
+        "path_semantics": "hypotheses-not-allowlist"
+      },
+      "producers": [
+        "plan-lite"
+      ]
+    },
+    "work-boundary": {
+      "availability": "planned",
+      "required_fields": [
+        "task_id",
+        "workspace",
+        "allowed_scope",
+        "explicitly_out_of_scope",
+        "authorization_guardrails",
+        "rollback_path"
+      ],
+      "optional_fields": [
+        "base_revision",
+        "branch",
+        "worktree"
+      ],
+      "producers": [
+        "branch-sandbox"
+      ]
+    }
+  },
+  "skills": {
+    "branch-sandbox": {
+      "role": "workspace-isolator",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference"
+      ],
+      "planned_consumes": [],
+      "planned_produces": [
+        "work-boundary"
+      ],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "feedback-loop": {
+      "role": "evidence-builder",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference"
+      ],
+      "planned_consumes": [
+        "review-boundary-seed",
+        "work-boundary"
+      ],
+      "planned_produces": [
+        "checkpoint",
+        "code-state-token",
+        "evidence-record"
+      ],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "grill": {
+      "role": "outcome-aligner",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference",
+        "alignment-snapshot"
+      ],
+      "planned_consumes": [],
+      "planned_produces": [],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "plan-lite": {
+      "role": "execution-planner",
+      "consumes": [
+        "outcome-reference",
+        "alignment-snapshot",
+        "outcome-contract"
+      ],
+      "produces": [
+        "outcome-reference",
+        "implementation-plan",
+        "review-boundary-seed"
+      ],
+      "planned_consumes": [],
+      "planned_produces": [],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "spec-lite": {
+      "role": "outcome-contract-author",
+      "consumes": [
+        "outcome-reference",
+        "alignment-snapshot"
+      ],
+      "produces": [
+        "outcome-reference",
+        "outcome-contract"
+      ],
+      "planned_consumes": [],
+      "planned_produces": [],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "two-axis-review": {
+      "role": "boundary-reviewer",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference"
+      ],
+      "planned_consumes": [
+        "review-boundary-seed",
+        "work-boundary",
+        "code-state-token",
+        "evidence-record"
+      ],
+      "planned_produces": [
+        "code-state-token",
+        "review-boundary"
+      ],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    },
+    "verify-before-claim": {
+      "role": "claim-gate",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference"
+      ],
+      "planned_consumes": [
+        "review-boundary",
+        "code-state-token",
+        "evidence-record"
+      ],
+      "planned_produces": [
+        "code-state-token",
+        "claim-record"
+      ],
+      "missing_outcome_reference": "bootstrap-provisional",
+      "authority_failure": "stale-until-reconfirmed"
+    }
+  },
+  "composition_paths": {
+    "no-spec": {
+      "producer": "grill",
+      "consumer": "plan-lite",
+      "record": "outcome-reference"
+    },
+    "with-spec": {
+      "producer": "spec-lite",
+      "consumer": "plan-lite",
+      "record": "outcome-reference"
+    }
+  }
+}
