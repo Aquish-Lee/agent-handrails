@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +48,13 @@ def frontmatter(text: str) -> dict[str, str]:
         key, value = line.split(":", 1)
         result[key.strip()] = value.strip().strip('"')
     return result
+
+
+def markdown_files(root: Path = ROOT) -> Iterator[Path]:
+    for path in root.rglob("*.md"):
+        if ".scratch" in path.relative_to(root).parts:
+            continue
+        yield path
 
 
 def main() -> int:
@@ -125,7 +133,8 @@ def main() -> int:
             if term in text:
                 errors.append(f"{path.relative_to(ROOT)}: stale/forbidden term {term!r}")
 
-    for path in ROOT.rglob("*.md"):
+    checked_markdown = list(markdown_files())
+    for path in checked_markdown:
         text = path.read_text(encoding="utf-8")
         for term in ("Aquish", "aquish-"):
             if term in text:
@@ -146,10 +155,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    markdown_count = sum(1 for _ in ROOT.rglob("*.md"))
     print("Agent Handrails validation PASSED")
     print(f"- skills checked: {checked}")
-    print(f"- markdown files checked for stale naming: {markdown_count}")
+    print(f"- markdown files checked for stale naming: {len(checked_markdown)}")
     print("- invocation model: ambient matching disabled; explicit harness selection allowed")
     return 0
 
