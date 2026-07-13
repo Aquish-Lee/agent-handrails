@@ -2,110 +2,107 @@
 
 ## Bounded context
 
-Agent Handrails provides seven explicit, independently useful engineering primitives for AI coding agents. They are a toolbox rather than a mandatory workflow or hidden orchestrator.
-
-The shared domain spine is:
+Agent Handrails provides seven explicit, independently useful engineering
+primitives for AI coding agents. They are a toolbox, not a mandatory workflow or
+hidden orchestrator.
 
 ```text
-Outcome → Decision and Boundary → Evidence → Claim
+Outcome → authorized state boundary → evidence → proportionate claim
 ```
 
 ## Domain invariants
 
-- Invocation is explicit: a person or visible orchestrator selects a handrail.
-- Use the smallest professionally adequate path for the task.
-- Persistence does not confer authority.
-- An agent-generated spec, plan, or checkpoint cannot silently upgrade its input authority.
-- Evidence is valid only for its bound outcome revision, code state, boundary, environment, and claim scope.
+- A person or visible orchestrator selects each handrail explicitly.
+- Use the smallest professionally adequate path for the requested claim/task.
+- A current user request is authoritative when the user controls the scope and
+  no permission or designated-source conflict exists.
+- Agent-derived or reinterpreted outcome meaning is provisional.
+- Persistence never upgrades authority or evidence freshness.
 - A Review Boundary Seed is a hypothesis, never an allowlist.
-- A Local Capsule is a disposable cache, never an Outcome Source.
-- Every deployed skill must retain the minimum contract needed to work when copied alone.
+- Boundary IDs/digests are runtime-generated from canonical mechanical state.
+- Development evidence guides work but cannot support a completion claim.
+- Any relevant outcome, boundary, state, or environment change stales dependent
+  evidence; v2 reruns the narrowest check instead of reusing it.
+- Checkpoints are shared, optional continuity projections. A Local Capsule is a
+  disposable orientation cache, never an Outcome Source.
+- Every deployed skill remains usable when copied alone.
 
 ## Ubiquitous language
 
 ### Task ID
 
-The stable identity of one engineering task across skills, sessions, Outcome Source revisions, and workspaces. It is not a branch name, Issue ID, or Outcome Revision, though one of those may help derive it.
+Stable task identity across skills, sessions, revisions, and workspaces. It is
+not an Outcome Revision or branch name.
 
-### Outcome Source
+### Outcome Source and Revision
 
-The original carrier of intended results: a request, conversation, alignment snapshot, issue, PRD, spec, bug repro, deployment objective, or other explicitly designated source. Saving a source does not automatically make it authoritative.
-
-### Outcome Revision
-
-An exact, comparable version of the outcome meaning. Use a source-native immutable revision plus a compact outcome digest when available; otherwise use a task-local opaque revision grounded in the snapshot. A timestamp or `Last updated` field alone is not an Outcome Revision.
+The source carries intended results: request, conversation, alignment snapshot,
+issue, PRD, spec, bug repro, deployment objective, or another designated source.
+Outcome Revision identifies one exact meaning. Use a native immutable revision
+and digest when available; otherwise use an honest task-local opaque revision.
 
 ### Outcome Reference
 
-The handoff record that binds a Task ID to an exact Outcome Source ID, locator, Outcome Revision, authority basis, compact snapshot, lifecycle, currentness, supersession, and stale conditions. It identifies the outcome; it is not the Outcome Source itself.
+The shared record binding Task ID to source identity/locator, Outcome Revision,
+authority basis, snapshot, lifecycle, currentness, supersession, and stale
+conditions. It identifies the outcome but is not the Outcome Source itself.
 
-### Outcome Authority
+### Work Boundary and Review Boundary Seed
 
-Whether the current reference has been reconciled with the person, repository policy, or explicitly authorized source that may define the outcome. `authoritative` and `provisional` describe this relationship, not confidence or document durability.
+Work Boundary records actual task-start isolation and authorization state.
+Review Boundary Seed records planning hypotheses, dependencies, guardrails,
+known pre-existing work, and participating workspaces. Neither is a final review
+allowlist.
 
-### Supersession
+### Candidate, Hunk, and Logical Unit
 
-An explicit relationship in which a new Outcome Reference replaces one exact prior revision and records the authority basis. Newer timestamps or more durable files do not supersede automatically.
+The runtime inventories current committed-since-base, staged, unstaged,
+untracked, and explicitly declared ignored state. It creates a Candidate ID from
+workspace, layer, path, and fingerprint. Tracked candidates are split into Hunk
+IDs; untracked/declared-ignored artifacts are whole-content units. A semantic
+classification applies to exactly one runtime ID.
 
-### Staleness
+### Claim Boundary and Review Boundary
 
-A state in which a record can no longer be shown to match its dependencies. Stale records remain useful history but cannot support a current approval or completion claim until reconciled and, where needed, reverified.
-
-### Work Boundary
-
-The authorization and isolation boundary: task-start revision/candidates, participating workspaces, expected logical changes, guardrails, explicitly declared ignored artifacts, and rollback path. Expected changes are hypotheses, not a review allowlist.
-
-### Logical Change Unit
-
-A plan's intended commit, review, integration, or rollback slice. It organizes execution but is not the final Review Boundary.
-
-### Review Boundary Seed
-
-Planning hypotheses about expected logical changes, dependent/generated changes, authorization guardrails, known pre-existing changes, and participating workspaces. Omitted paths are not proven unrelated.
-
-### Review Boundary
-
-The actual review scope produced only after inventorying the current participating workspaces and classifying every candidate change. A commit range or planned file list cannot substitute for it.
-
-### Boundary Digest
-
-A reproducible digest of the confirmed inventory, classifications, and workspace identities. It fingerprints an already-made semantic boundary decision; it does not decide task relevance.
-
-### Checkpoint
-
-A compact structured view of current task state: outcome reference, boundary/state token, repro/baseline, change and evidence deltas, done/next/blockers, claims, and invalidation rules. It lives in conversation by default.
-
-### Local Capsule
-
-The optional, single, compactly rewritten `.scratch/<task-id>/STATE.md` representation of a Checkpoint. It is materialized only for continuity risk, restores orientation, and never supplies authority, Outcome Revision, or evidence freshness.
+A Claim Boundary scopes a `scoped-task` completion claim. A Review Boundary
+scopes the two-axis review used for a `high-assurance` claim. Both use the same
+canonical runtime but distinct classification schemas.
 
 ### Code State Token
 
-A mechanical capture of exact repository, workspace, VCS, boundary, and relevant environment state. It does not determine which changes are task-related.
+A mechanical binding of Boundary Digest, Inventory Digest, repository/base,
+participating workspaces, relevant environment, and capture time. It does not
+decide semantic relevance.
 
-### Evidence Record
+### Development Evidence and Claim Evidence
 
-An observed check/result bound to an Outcome Revision, Boundary Digest, Code State Token, environment, time, and narrow scope. Evidence is not itself a completion claim.
+Feedback Loop produces development evidence (`observed | stale | blocked`) to
+guide the next change. Verify Before Claim produces claim evidence (`fresh |
+stale | blocked`) that may support exact claim wording while its bindings match.
+
+### Review Record
+
+Two-Axis Review's formal output: Review ID, Outcome Revision, Boundary Digest,
+Code State Token, Outcome Fit findings, Engineering Quality findings,
+recommendation, missing evidence, time, and stale conditions.
 
 ### Claim Record
 
-A result statement whose wording and scope do not exceed its fresh Evidence Records. It records unsupported portions and stale conditions explicitly.
+A claim classified as:
 
-## Relationship summary
+- `fact`: direct fresh claim evidence, no boundary/review;
+- `scoped-task`: exact Claim Boundary plus fresh claim evidence;
+- `high-assurance`: exact current Review Record plus supporting claim evidence.
 
-```text
-Outcome Source + Outcome Revision
-  → Outcome Reference
-  → Plan + Review Boundary Seed
-  → Review Boundary + Boundary Digest + Code State Token
-  → Evidence Record
-  → Claim Record
-```
+### Checkpoint and Local Capsule
 
-Work Boundary constrains authorization throughout. Checkpoints may summarize every stage; a Local Capsule only caches that summary.
+Any handrail may expand a Checkpoint on pause/block, handoff, context risk,
+expensive evidence, or explicit request. A persisted Capsule rewrites the single
+`.scratch/<task-id>/STATE.md` and is orientation only.
 
 ## Canonical specifications
 
-- Contract semantics: `docs/contracts/usable-loop-v1.md`
-- Machine catalog: `contracts/usable-loop-v1.json`
-- Architecture decision: `docs/adr/0001-versioned-usable-loop-contract.md`
+- Active semantics: `docs/contracts/usable-loop-v2.md`
+- Active machine contract: `contracts/usable-loop-v2.json`
+- v2 decision: `docs/adr/0002-deterministic-claim-scaled-usable-loop-v2.md`
+- Immutable predecessor: `usable-loop/v1` and ADR 0001

@@ -1,5 +1,6 @@
 interface:
   display_name: "Grill"
-  short_description: "Interrogate consequential uncertainty before non-trivial work"
+  short_description: "Resolve consequential uncertainty before implementation"
+  default_prompt: "Use $grill to resolve only the uncertainties that could materially change this task."
 policy:
   allow_implicit_invocation: false

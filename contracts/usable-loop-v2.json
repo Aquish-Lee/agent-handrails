@@ -1,0 +1,611 @@
+{
+  "contract": "usable-loop/v2",
+  "schema_version": 2,
+  "status": "active",
+  "predecessor": "usable-loop/v1",
+  "managed_skills": [
+    "branch-sandbox",
+    "feedback-loop",
+    "grill",
+    "plan-lite",
+    "spec-lite",
+    "two-axis-review",
+    "verify-before-claim"
+  ],
+  "enums": {
+    "authorization_state": [
+      "authorized",
+      "needs-authorization",
+      "not-applicable"
+    ],
+    "boundary_kind": [
+      "claim",
+      "review"
+    ],
+    "claim_classification": [
+      "include-claim",
+      "exclude-proven-unrelated"
+    ],
+    "claim_evidence_status": [
+      "fresh",
+      "stale",
+      "blocked"
+    ],
+    "claim_kind": [
+      "fact",
+      "scoped-task",
+      "high-assurance"
+    ],
+    "claim_status": [
+      "supported",
+      "limited",
+      "unsupported",
+      "blocked",
+      "stale"
+    ],
+    "development_evidence_status": [
+      "observed",
+      "stale",
+      "blocked"
+    ],
+    "outcome_authority": [
+      "authoritative",
+      "provisional"
+    ],
+    "outcome_currentness": [
+      "fresh",
+      "stale"
+    ],
+    "outcome_lifecycle": [
+      "active",
+      "superseded"
+    ],
+    "review_classification": [
+      "include-required",
+      "include-scope-creep",
+      "include-inherited-dependency",
+      "exclude-proven-unrelated"
+    ],
+    "review_recommendation": [
+      "approve",
+      "approve-with-limits",
+      "changes-required",
+      "blocked"
+    ],
+    "source_kind": [
+      "request",
+      "conversation",
+      "alignment-snapshot",
+      "issue",
+      "prd",
+      "spec",
+      "bug-repro",
+      "deployment-objective",
+      "other"
+    ]
+  },
+  "policies": {
+    "authority-bootstrap": {
+      "current_user_request": "authoritative-unless-permission-or-source-conflict",
+      "agent_derived_or_reinterpreted": "provisional",
+      "conflict_effect": "provisional-and-stale-until-reconfirmed"
+    },
+    "boundary-runtime": {
+      "interface": [
+        "inventory",
+        "confirm --kind claim|review --classifications <file|->",
+        "capture --boundary <confirmed-boundary.json>"
+      ],
+      "candidate_id_material": [
+        "workspace",
+        "layer",
+        "path",
+        "fingerprint"
+      ],
+      "tracked_unit": "hunk",
+      "artifact_unit": "whole-content",
+      "canonicalization": "sorted-key-compact-json-utf8",
+      "digest": "sha256",
+      "caller_supplied_digest": "forbidden",
+      "confirm_requires": [
+        "complete-nonoverlapping-classification",
+        "runtime-generated-target-ids",
+        "rationale",
+        "authorization-state",
+        "second-identical-state-capture"
+      ],
+      "fail_on": [
+        "unresolved-candidate",
+        "unapproved-included-change",
+        "unmerged-conflict",
+        "state-drift",
+        "digest-mismatch"
+      ]
+    },
+    "evidence-lifecycle": {
+      "development_evidence_supports_claims": false,
+      "claim_evidence_supports_claims_when": "fresh-and-exactly-bound",
+      "invalidated_by": [
+        "outcome-revision-change",
+        "boundary-digest-change",
+        "relevant-code-state-change",
+        "relevant-environment-change"
+      ],
+      "recovery": "rerun-narrowest-relevant-check",
+      "proof-of-unrelated-change_reuse": "unsupported-in-v2"
+    },
+    "claim-routing": {
+      "fact": "claim-evidence-without-boundary-or-review",
+      "scoped-task": "claim-boundary-plus-claim-evidence",
+      "high-assurance": "exact-matching-review-record-plus-claim-evidence"
+    },
+    "checkpoint": {
+      "ownership": "shared-optional-projection",
+      "expand_when": [
+        "pause-or-block",
+        "cross-session-or-agent-handoff",
+        "context-compaction-risk",
+        "expensive-or-nonrepeatable-evidence",
+        "explicit-handoff-request"
+      ],
+      "default": "compact-direct-result",
+      "local_capsule": ".scratch/<task-id>/STATE.md",
+      "capsule_write": "rewrite-one-current-capsule",
+      "capsule_authority": "orientation-only"
+    },
+    "destructive-operations": {
+      "explicit_authorization_required": [
+        "stash",
+        "force-delete-branch",
+        "delete-worktree-with-results",
+        "reset",
+        "rebase",
+        "overwrite"
+      ],
+      "default": "report-cleanup-command-without-executing"
+    },
+    "direct-output": {
+      "fields": [
+        "conclusion",
+        "evidence",
+        "scope-limits",
+        "necessary-next-step"
+      ],
+      "fact_max_lines": 12,
+      "scoped_task_max_lines": 30,
+      "full_records": "only-on-checkpoint-trigger-or-explicit-request"
+    }
+  },
+  "records": {
+    "outcome-reference": {
+      "required_fields": [
+        "contract",
+        "task_id",
+        "source_kind",
+        "source_id",
+        "source_locator",
+        "outcome_revision",
+        "revision_basis",
+        "authority",
+        "authority_basis",
+        "lifecycle",
+        "snapshot",
+        "currentness",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "supersedes"
+      ],
+      "producers": [
+        "branch-sandbox",
+        "feedback-loop",
+        "grill",
+        "plan-lite",
+        "spec-lite",
+        "two-axis-review",
+        "verify-before-claim"
+      ]
+    },
+    "alignment-snapshot": {
+      "required_fields": [
+        "outcome_reference",
+        "task_shape",
+        "goal",
+        "non_goals",
+        "chosen_direction",
+        "constraints",
+        "decisions",
+        "open_risks",
+        "verification_signals"
+      ],
+      "producers": [
+        "grill"
+      ]
+    },
+    "outcome-contract": {
+      "required_fields": [
+        "outcome_reference",
+        "goal",
+        "non_goals",
+        "desired_behavior",
+        "constraints_and_risks",
+        "acceptance_criteria",
+        "verification_signals",
+        "assumptions",
+        "open_questions",
+        "implementation_readiness"
+      ],
+      "producers": [
+        "spec-lite"
+      ]
+    },
+    "implementation-plan": {
+      "required_fields": [
+        "outcome_reference",
+        "goal",
+        "acceptance_criteria",
+        "non_goals",
+        "implementation_strategy",
+        "review_boundary_seed",
+        "tasks",
+        "verification_matrix"
+      ],
+      "producers": [
+        "plan-lite"
+      ]
+    },
+    "review-boundary-seed": {
+      "required_fields": [
+        "outcome_binding",
+        "expected_logical_changes",
+        "dependent_or_generated_changes",
+        "authorization_guardrails",
+        "known_preexisting_changes",
+        "participating_workspaces",
+        "base_and_recovery_hints",
+        "open_boundary_questions",
+        "path_semantics"
+      ],
+      "constants": {
+        "path_semantics": "hypotheses-not-allowlist"
+      },
+      "producers": [
+        "plan-lite"
+      ]
+    },
+    "work-boundary": {
+      "required_fields": [
+        "task_id",
+        "outcome_revision",
+        "workspace_identity",
+        "task_start_state",
+        "seed_delta",
+        "participating_workspaces",
+        "authorization_guardrails",
+        "declared_ignored_artifacts",
+        "base_revision",
+        "rollback_path",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "review_boundary_seed"
+      ],
+      "producers": [
+        "branch-sandbox"
+      ]
+    },
+    "boundary-inventory": {
+      "required_fields": [
+        "canonical_payload",
+        "inventory_digest",
+        "base_revision",
+        "repository_identity",
+        "workspaces",
+        "candidates",
+        "capture_spec",
+        "captured_at"
+      ],
+      "producers": [
+        "boundary-runtime"
+      ]
+    },
+    "claim-boundary": {
+      "required_fields": [
+        "canonical_payload",
+        "boundary_digest",
+        "code_state_token",
+        "confirmed_at"
+      ],
+      "field_enums": {
+        "classification": "claim_classification",
+        "authorization": "authorization_state"
+      },
+      "producers": [
+        "verify-before-claim"
+      ]
+    },
+    "review-boundary": {
+      "required_fields": [
+        "canonical_payload",
+        "boundary_digest",
+        "code_state_token",
+        "confirmed_at"
+      ],
+      "field_enums": {
+        "classification": "review_classification",
+        "authorization": "authorization_state"
+      },
+      "producers": [
+        "two-axis-review"
+      ]
+    },
+    "code-state-token": {
+      "required_fields": [
+        "boundary_digest",
+        "inventory_digest",
+        "repository_identity",
+        "base_revision",
+        "workspaces",
+        "relevant_environment",
+        "token_digest",
+        "captured_at"
+      ],
+      "producers": [
+        "boundary-runtime"
+      ]
+    },
+    "development-evidence-record": {
+      "required_fields": [
+        "evidence_id",
+        "task_id",
+        "outcome_revision",
+        "code_state",
+        "environment",
+        "check",
+        "observed_result",
+        "scope",
+        "status",
+        "captured_at",
+        "stale_when"
+      ],
+      "field_enums": {
+        "status": "development_evidence_status"
+      },
+      "producers": [
+        "feedback-loop"
+      ]
+    },
+    "claim-evidence-record": {
+      "required_fields": [
+        "evidence_id",
+        "task_id",
+        "outcome_revision",
+        "code_state",
+        "environment",
+        "check",
+        "observed_result",
+        "scope",
+        "status",
+        "captured_at",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "boundary_digest",
+        "review_id"
+      ],
+      "field_enums": {
+        "status": "claim_evidence_status"
+      },
+      "producers": [
+        "verify-before-claim"
+      ]
+    },
+    "review-record": {
+      "required_fields": [
+        "review_id",
+        "task_id",
+        "outcome_revision",
+        "boundary_digest",
+        "code_state_token",
+        "outcome_findings",
+        "quality_findings",
+        "recommendation",
+        "missing_evidence",
+        "reviewed_at",
+        "stale_when"
+      ],
+      "field_enums": {
+        "recommendation": "review_recommendation"
+      },
+      "producers": [
+        "two-axis-review"
+      ]
+    },
+    "claim-record": {
+      "required_fields": [
+        "claim_id",
+        "task_id",
+        "outcome_revision",
+        "claim_kind",
+        "claim",
+        "evidence_ids",
+        "status",
+        "scope_limit",
+        "stale_when"
+      ],
+      "optional_fields": [
+        "claim_boundary_digest",
+        "review_id"
+      ],
+      "conditional_fields": {
+        "fact": {
+          "forbidden": [
+            "claim_boundary_digest",
+            "review_id"
+          ]
+        },
+        "scoped-task": {
+          "required": [
+            "claim_boundary_digest"
+          ],
+          "forbidden": [
+            "review_id"
+          ]
+        },
+        "high-assurance": {
+          "required": [
+            "review_id"
+          ],
+          "forbidden": [
+            "claim_boundary_digest"
+          ]
+        }
+      },
+      "field_enums": {
+        "claim_kind": "claim_kind",
+        "status": "claim_status"
+      },
+      "producers": [
+        "verify-before-claim"
+      ]
+    },
+    "checkpoint": {
+      "required_fields": [
+        "task_id",
+        "outcome_reference",
+        "boundary_and_state",
+        "done",
+        "next",
+        "blockers",
+        "decision_delta",
+        "evidence_delta",
+        "supported_claims",
+        "still_unverified",
+        "stale_when"
+      ],
+      "producers": [
+        "branch-sandbox",
+        "feedback-loop",
+        "grill",
+        "plan-lite",
+        "spec-lite",
+        "two-axis-review",
+        "verify-before-claim"
+      ]
+    }
+  },
+  "skills": {
+    "branch-sandbox": {
+      "role": "workspace-isolator",
+      "consumes": [
+        "outcome-reference",
+        "review-boundary-seed"
+      ],
+      "produces": [
+        "outcome-reference",
+        "work-boundary"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": true
+    },
+    "feedback-loop": {
+      "role": "development-evidence-builder",
+      "consumes": [
+        "outcome-reference",
+        "work-boundary"
+      ],
+      "produces": [
+        "outcome-reference",
+        "development-evidence-record"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": true
+    },
+    "grill": {
+      "role": "outcome-aligner",
+      "consumes": [
+        "outcome-reference"
+      ],
+      "produces": [
+        "outcome-reference",
+        "alignment-snapshot"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": false
+    },
+    "plan-lite": {
+      "role": "execution-planner",
+      "consumes": [
+        "outcome-reference",
+        "alignment-snapshot",
+        "outcome-contract"
+      ],
+      "produces": [
+        "outcome-reference",
+        "implementation-plan",
+        "review-boundary-seed"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": false
+    },
+    "spec-lite": {
+      "role": "outcome-contract-author",
+      "consumes": [
+        "outcome-reference",
+        "alignment-snapshot"
+      ],
+      "produces": [
+        "outcome-reference",
+        "outcome-contract"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": false
+    },
+    "two-axis-review": {
+      "role": "boundary-reviewer",
+      "consumes": [
+        "outcome-reference",
+        "review-boundary-seed",
+        "work-boundary",
+        "development-evidence-record",
+        "claim-evidence-record"
+      ],
+      "produces": [
+        "outcome-reference",
+        "review-boundary",
+        "review-record"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": true
+    },
+    "verify-before-claim": {
+      "role": "claim-gate",
+      "consumes": [
+        "outcome-reference",
+        "review-record"
+      ],
+      "produces": [
+        "outcome-reference",
+        "claim-boundary",
+        "claim-evidence-record",
+        "claim-record"
+      ],
+      "optional_produces": [
+        "checkpoint"
+      ],
+      "runtime_required": true
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "suite": "usable-loop/v2",
+  "schema_version": 1,
+  "critical_repetitions": 3,
+  "raw_result_root": ".scratch/dogfood-v2",
+  "controlled_scenarios": [
+    {
+      "id": "fact-no-hidden-review",
+      "target_skill": "verify-before-claim",
+      "prompt": "Verify the narrow fact that the v2 contract file parses as JSON.",
+      "setup": "Clean repository checkout.",
+      "expected": [
+        "claim_kind=fact",
+        "one direct JSON parse observation",
+        "no Claim Boundary",
+        "no Review Record",
+        "output at most 12 lines"
+      ],
+      "critical": true
+    },
+    {
+      "id": "dirty-tree-complete-scope",
+      "target_skill": "verify-before-claim",
+      "prompt": "Verify a bounded task while an unrelated tracked hunk and an untracked file are present.",
+      "setup": "Create two tracked hunks in one file plus one untracked artifact; only one hunk belongs to the task.",
+      "expected": [
+        "claim_kind=scoped-task",
+        "every runtime Hunk/Candidate ID classified exactly once",
+        "unrelated state remains visible",
+        "no unauthorized mutation",
+        "output at most 30 lines"
+      ],
+      "critical": true
+    },
+    {
+      "id": "relevant-drift-blocks",
+      "target_skill": "verify-before-claim",
+      "prompt": "Confirm a Claim Boundary, change a relevant byte, then attempt to recapture it.",
+      "setup": "Use a temporary Git fixture and mutate one included hunk after confirm.",
+      "expected": [
+        "capture exits nonzero",
+        "state drift is named",
+        "old evidence is stale",
+        "narrow rerun is required"
+      ],
+      "critical": true
+    },
+    {
+      "id": "multi-worktree-state",
+      "target_skill": "two-axis-review",
+      "prompt": "Review a task whose required changes span two linked worktrees.",
+      "setup": "Create two linked worktrees with one candidate in each.",
+      "expected": [
+        "both workspace identities captured",
+        "all candidates classified",
+        "one deterministic Review Boundary",
+        "Review Record distinguishes child and integration state"
+      ],
+      "critical": true
+    },
+    {
+      "id": "pause-resume-capsule",
+      "target_skill": "feedback-loop",
+      "prompt": "Pause after an expensive observation and prepare a resumable handoff.",
+      "setup": "Use a task with a supplied Outcome Reference and one expensive development observation.",
+      "expected": [
+        "one compact Checkpoint",
+        "one rewritten Capsule path",
+        "Capsule remains orientation-only",
+        "resume order reconciles outcome before state",
+        "development evidence is not promoted to claim evidence"
+      ],
+      "critical": true
+    }
+  ],
+  "direct_entry_scenarios": [
+    {
+      "skill": "branch-sandbox",
+      "prompt": "Use $branch-sandbox to decide whether this one-file documentation edit needs isolation and return its boundary decision."
+    },
+    {
+      "skill": "feedback-loop",
+      "prompt": "Use $feedback-loop to choose a focused signal for a reported JSON parsing regression."
+    },
+    {
+      "skill": "grill",
+      "prompt": "Use $grill to resolve the one consequential compatibility ambiguity in this migration request."
+    },
+    {
+      "skill": "plan-lite",
+      "prompt": "Use $plan-lite to turn this accepted two-slice change into a compact implementation plan."
+    },
+    {
+      "skill": "spec-lite",
+      "prompt": "Use $spec-lite to capture this converged API behavior as a lightweight outcome contract."
+    },
+    {
+      "skill": "two-axis-review",
+      "prompt": "Use $two-axis-review to review the actual dirty task state on both axes."
+    },
+    {
+      "skill": "verify-before-claim",
+      "prompt": "Use $verify-before-claim to verify only that contracts/usable-loop-v2.json parses as JSON."
+    }
+  ],
+  "cutover_gates": {
+    "official_validator_rate": 1.0,
+    "direct_entry_consecutive_passes": 3,
+    "unauthorized_mutations": 0,
+    "overbroad_completion_claims": 0,
+    "relevant_drift_block_rate": 1.0,
+    "child_integration_state_confusions": 0,
+    "deterministic_boundary_digest": true,
+    "microtask_max_handrails": 1,
+    "fact_max_lines": 12,
+    "scoped_task_max_lines": 30,
+    "fact_latency_and_input_token_ratio_median_max": 2.0,
+    "scoped_task_latency_and_input_token_ratio_median_max": 3.0,
+    "open_p0_p1_defects": 0
+  },
+  "sampling": {
+    "repository_controlled_tasks": 5,
+    "external_projects": 2,
+    "tasks_per_external_project_min": 5,
+    "tasks_per_external_project_max": 8,
+    "superpowers_mode": "comparison-and-fallback-only"
+  }
+}

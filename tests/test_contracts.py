@@ -1,24 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import re
-import shutil
+import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VALIDATOR_PATH = PROJECT_ROOT / "scripts" / "validate.py"
-SPEC = importlib.util.spec_from_file_location("contract_validator", VALIDATOR_PATH)
-assert SPEC is not None and SPEC.loader is not None
-validator = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = validator
-SPEC.loader.exec_module(validator)
-
-CONTRACT_PATH = PROJECT_ROOT / "contracts" / "usable-loop-v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "contracts" / "usable-loop-v2.json"
 SKILL_NAMES = {
     "branch-sandbox",
     "feedback-loop",
@@ -28,511 +23,163 @@ SKILL_NAMES = {
     "two-axis-review",
     "verify-before-claim",
 }
-OUTCOME_FIELDS = {
-    "contract",
-    "task_id",
-    "source_kind",
-    "source_id",
-    "source_locator",
-    "outcome_revision",
-    "revision_basis",
-    "authority",
-    "authority_basis",
-    "lifecycle",
-    "snapshot",
-    "currentness",
-    "stale_when",
+V1_HASHES = {
+    "contracts/usable-loop-v1.json": "6a2455a83ba7a83bdc5b369cf1154d0462a2c8b5a2f8dc3b8edd3754545a5db8",
+    "docs/contracts/usable-loop-v1.md": "3fb5cd6aa8aad84b36cef015a450aeb33e37da0ca836ffd53f1055d29db31753",
+    "docs/adr/0001-versioned-usable-loop-contract.md": "bf10f3734293966fa377afc030d121a5f9b58aece65a0693a8a38ddaf88c31d4",
+    "runtime/git_state.py": "1471ac833acdecc233d0110a312e8197677662a60baaebca83a4542a9154ba55",
 }
 
 
-def load_contract(path: Path = CONTRACT_PATH) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+def load_contract() -> dict[str, object]:
+    return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
-def contract_block(path: Path) -> dict[str, str]:
-    text = path.read_text(encoding="utf-8")
-    match = re.search(
-        r"<!-- handrails-contract\n(?P<body>.*?)\n-->",
-        text,
-        flags=re.DOTALL,
-    )
-    if match is None:
-        return {}
-    result: dict[str, str] = {}
-    for line in match.group("body").splitlines():
-        key, separator, value = line.partition(":")
-        if separator:
-            result[key.strip()] = value.strip()
-    return result
+class UsableLoopV2ContractTests(unittest.TestCase):
+    def test_v1_files_are_immutable_history(self) -> None:
+        for relative, expected in V1_HASHES.items():
+            with self.subTest(path=relative):
+                actual = hashlib.sha256(
+                    (PROJECT_ROOT / relative).read_bytes()
+                ).hexdigest()
+                self.assertEqual(actual, expected)
 
-
-class UsableLoopContractTests(unittest.TestCase):
-    def test_optional_spec_paths_share_one_outcome_reference_shape(self) -> None:
+    def test_v2_is_active_and_manages_exactly_seven_skills(self) -> None:
         contract = load_contract()
-        records = contract["records"]
-        paths = contract["composition_paths"]
-        self.assertIsInstance(records, dict)
-        self.assertIsInstance(paths, dict)
-        outcome = records["outcome-reference"]
-        self.assertTrue(OUTCOME_FIELDS.issubset(outcome["required_fields"]))
-        self.assertEqual(
-            {paths[name]["record"] for name in ("no-spec", "with-spec")},
-            {"outcome-reference"},
-        )
-        self.assertEqual(paths["no-spec"]["consumer"], "plan-lite")
-        self.assertEqual(paths["with-spec"]["consumer"], "plan-lite")
+        self.assertEqual(contract["contract"], "usable-loop/v2")
+        self.assertEqual(contract["schema_version"], 2)
+        self.assertEqual(contract["status"], "active")
+        self.assertEqual(contract["predecessor"], "usable-loop/v1")
+        self.assertEqual(set(contract["managed_skills"]), SKILL_NAMES)
 
-    def test_task3_activates_all_records_projected_by_current_skills(self) -> None:
-        records = load_contract()["records"]
-        active = {
-            name
-            for name, declaration in records.items()
-            if declaration["availability"] == "active"
-        }
-        self.assertEqual(
-            active,
-            {
-                "outcome-reference",
-                "alignment-snapshot",
-                "outcome-contract",
-                "implementation-plan",
-                "review-boundary-seed",
-                "work-boundary",
-                "code-state-token",
-                "evidence-record",
-                "review-boundary",
-                "claim-record",
-                "checkpoint",
-            },
-        )
-
-    def test_task3_record_ownership_matches_the_review_and_evidence_flow(self) -> None:
-        skills = load_contract()["skills"]
-        for skill_name, declaration in skills.items():
-            with self.subTest(skill=skill_name):
-                self.assertEqual(declaration["planned_consumes"], [])
-                self.assertEqual(declaration["planned_produces"], [])
-        self.assertIn("work-boundary", skills["branch-sandbox"]["produces"])
-        self.assertEqual(skills["feedback-loop"]["planned_produces"], [])
-        self.assertTrue(
-            {"checkpoint", "code-state-token", "evidence-record"}.issubset(
-                skills["feedback-loop"]["produces"]
-            )
-        )
-        self.assertTrue(
-            {"review-boundary-seed", "work-boundary"}.issubset(
-                skills["two-axis-review"]["consumes"]
-            )
-        )
-        self.assertTrue(
-            {"review-boundary", "code-state-token"}.issubset(
-                skills["two-axis-review"]["produces"]
-            )
-        )
-        self.assertTrue(
-            {"review-boundary", "code-state-token", "evidence-record"}.issubset(
-                skills["verify-before-claim"]["consumes"]
-            )
-        )
-        self.assertIn("claim-record", skills["verify-before-claim"]["produces"])
-
-    def test_task2_machine_contract_blocks_ambiguous_or_stale_approval(self) -> None:
-        contract = load_contract()
-        self.assertEqual(
-            set(contract["enums"]["review_target"]),
-            {"published-artifact", "current-task-state", "artifact-plus-local"},
-        )
-        boundary_gate = contract["policies"]["review-boundary-gate"]
-        self.assertEqual(boundary_gate["default"], "block-on-unresolved")
-        self.assertEqual(
-            set(boundary_gate["blockers"]),
-            {
-                "unresolved-candidate",
-                "boundary-digest-changed",
-                "participating-worktree-missing",
-            },
-        )
-        evidence_binding = contract["policies"]["evidence-binding"]
-        self.assertEqual(evidence_binding["default"], "exact-state")
-        self.assertEqual(
-            set(evidence_binding["invalidated_by"]),
-            {
-                "outcome-revision-change",
-                "unreconciled-or-relevant-review-boundary-change",
-                "relevant-code-state-change",
-                "relevant-environment-change",
-            },
-        )
-
-    def test_task3_active_records_bind_state_boundary_evidence_and_claims(self) -> None:
-        records = load_contract()["records"]
-        expectations = {
-            "work-boundary": {
-                "task_start_revision",
-                "task_start_candidates",
-                "participating_workspaces",
-                "authorization_guardrails",
-                "declared_ignored_artifacts",
-            },
-            "code-state-token": {
-                "review_boundary_digest",
-                "candidate_inventory",
-                "tracked_state_fingerprint",
-                "included_untracked_fingerprints",
-                "declared_ignored_fingerprints",
-                "participating_worktree_fingerprints",
-            },
-            "review-boundary": {
-                "review_target",
-                "candidate_inventory",
-                "classifications",
-                "boundary_digest",
-                "unresolved_items",
-            },
-            "evidence-record": {
-                "outcome_revision",
-                "review_boundary_digest",
-                "code_state_token",
-                "freshness",
-            },
-            "claim-record": {
-                "outcome_revision",
-                "review_boundary_digest",
-                "code_state_token",
-                "evidence_ids",
-                "status",
-            },
-            "checkpoint": {
-                "outcome_reference",
-                "boundary_state",
-                "code_state_token",
-                "repro_or_baseline",
-                "change_delta",
-                "next",
-                "blockers",
-                "evidence_delta",
-                "supported_claims",
-                "still_unverified",
-                "stale_when",
-            },
-        }
-        for record_name, required_fields in expectations.items():
-            with self.subTest(record=record_name):
-                self.assertEqual(records[record_name]["availability"], "active")
-                self.assertTrue(
-                    required_fields.issubset(records[record_name]["required_fields"])
-                )
-
-    def test_checkpoint_persistence_is_conversation_first_and_single_rewrite(self) -> None:
-        contract = load_contract()
-        persistence = contract["policies"]["checkpoint-persistence"]
-        self.assertEqual(persistence["default"], "conversation-only")
-        self.assertEqual(
-            set(persistence["materialize_when"]),
-            {
-                "cross-session-or-agent-handoff",
-                "context-compaction-risk",
-                "pause-or-block",
-                "relevant-uncommitted-state-at-handoff",
-                "expensive-or-nonrepeatable-evidence",
-            },
-        )
-        self.assertEqual(
-            contract["policies"]["local-capsule-write"]["default"],
-            "single-compact-rewrite",
-        )
-
-    def test_feedback_skill_projects_complete_checkpoint_and_capsule_rules(self) -> None:
-        text = (PROJECT_ROOT / "skills" / "feedback-loop" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
-        for label in (
-            "Outcome Reference:",
-            "Boundary state:",
-            "Code State Token:",
-            "Repro or baseline:",
-            "Change delta:",
-            "Done:",
-            "Next:",
-            "Blockers:",
-            "Decision delta:",
-            "Evidence delta:",
-            "Supported claims:",
-            "Still unverified:",
-            "Delete when:",
-        ):
-            with self.subTest(label=label):
-                self.assertIn(label, text)
-        self.assertIn(".scratch/<task-id>/STATE.md", text)
-        self.assertIn("conversation only", text.lower())
-        self.assertIn("rewrite", text.lower())
-        self.assertIn("Git ignore is not secure storage", text)
-
-    def test_practical_playbook_keeps_microtasks_ephemeral_and_resume_order_safe(self) -> None:
-        text = (
-            PROJECT_ROOT / "playbooks" / "practical-development-loop.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("Create no plan, spec, Capsule, or review document", text)
-        self.assertIn("exactly one `.scratch/<task-id>/STATE.md`", text)
-        outcome_position = text.index("Read and reconcile the designated Outcome Source")
-        capsule_position = text.index("Read the Capsule")
-        state_position = text.index("Recapture all participating state")
-        self.assertLess(outcome_position, capsule_position)
-        self.assertLess(capsule_position, state_position)
-
-    def test_every_handrail_can_bootstrap_a_provisional_reference(self) -> None:
-        contract = load_contract()
-        self.assertEqual(set(contract["skills"]), SKILL_NAMES)
-        for name, declaration in contract["skills"].items():
-            with self.subTest(skill=name):
-                self.assertEqual(
-                    declaration["missing_outcome_reference"],
-                    "bootstrap-provisional",
-                )
-                self.assertEqual(
-                    declaration["authority_failure"],
-                    "stale-until-reconfirmed",
-                )
-                self.assertIn("outcome-reference", declaration["produces"])
-                local = contract_block(PROJECT_ROOT / "skills" / name / "SKILL.md")
-                self.assertEqual(local.get("contract"), "usable-loop/v1")
-                self.assertEqual(local.get("role"), declaration["role"])
-                self.assertEqual(
-                    local.get("missing-outcome-reference"),
-                    declaration["missing_outcome_reference"],
-                )
-                self.assertEqual(
-                    local.get("authority-failure"),
-                    declaration["authority_failure"],
-                )
-                self.assertEqual(local.get("outcome-record"), "outcome-reference")
-
-    def test_authority_failure_stales_evidence_and_claims(self) -> None:
-        contract = load_contract()
-        policy = contract["policies"]["authority-failure"]
-        self.assertEqual(
-            set(policy["triggers"]),
-            {
-                "authority-inaccessible",
-                "authority-conflict",
-                "authority-revision-mismatch",
-            },
-        )
-        self.assertEqual(policy["effects"]["dependent_evidence"], "stale")
-        self.assertEqual(policy["effects"]["dependent_claims"], "stale")
-        self.assertIn(
-            policy["effects"]["outcome_currentness"],
-            contract["enums"]["outcome_freshness"],
-        )
-        self.assertEqual(policy["recovery"], "reconcile-or-reconfirm")
-
-    def test_revision_and_ignored_artifact_policies_are_fail_honest(self) -> None:
+    def test_direct_user_authority_and_fail_closed_evidence_are_canonical(self) -> None:
         policies = load_contract()["policies"]
         self.assertEqual(
-            policies["revision-integrity"],
-            {
-                "enum": "revision_digest_claim",
-                "default": "computed-only",
-                "fallback": "task-local-opaque-revision",
-            },
+            policies["authority-bootstrap"]["current_user_request"],
+            "authoritative-unless-permission-or-source-conflict",
+        )
+        lifecycle = policies["evidence-lifecycle"]
+        self.assertFalse(lifecycle["development_evidence_supports_claims"])
+        self.assertEqual(
+            lifecycle["proof-of-unrelated-change_reuse"], "unsupported-in-v2"
+        )
+        self.assertEqual(lifecycle["recovery"], "rerun-narrowest-relevant-check")
+
+    def test_claim_kinds_have_distinct_record_requirements(self) -> None:
+        contract = load_contract()
+        self.assertEqual(
+            set(contract["enums"]["claim_kind"]),
+            {"fact", "scoped-task", "high-assurance"},
+        )
+        conditions = contract["records"]["claim-record"]["conditional_fields"]
+        self.assertEqual(
+            conditions["fact"]["forbidden"],
+            ["claim_boundary_digest", "review_id"],
         )
         self.assertEqual(
-            policies["ignored-artifact-declaration"]["default"],
-            "explicit-only",
+            conditions["scoped-task"]["required"], ["claim_boundary_digest"]
         )
+        self.assertEqual(conditions["high-assurance"]["required"], ["review_id"])
 
-    def test_repository_contract_metadata_is_consistent(self) -> None:
-        self.assertEqual(validator.contract_errors(PROJECT_ROOT), [])
+    def test_evidence_review_and_checkpoint_ownership_is_explicit(self) -> None:
+        records = load_contract()["records"]
+        self.assertEqual(
+            records["development-evidence-record"]["producers"], ["feedback-loop"]
+        )
+        self.assertEqual(
+            records["claim-evidence-record"]["producers"], ["verify-before-claim"]
+        )
+        self.assertEqual(records["review-record"]["producers"], ["two-axis-review"])
+        self.assertEqual(set(records["checkpoint"]["producers"]), SKILL_NAMES)
 
-    def test_validator_rejects_invalid_skill_contract_metadata(self) -> None:
-        mutations = {
-            "missing-contract-marker": lambda text: re.sub(
-                r"\n<!-- handrails-contract\n.*?\n-->\n",
-                "\n",
-                text,
-                count=1,
-                flags=re.DOTALL,
-            ),
-            "missing-contract-role": lambda text: text.replace(
-                "role: outcome-aligner\n",
-                "",
-                1,
-            ),
-            "contract-role-mismatch": lambda text: text.replace(
-                "role: outcome-aligner",
-                "role: execution-planner",
-                1,
-            ),
-            "invalid-contract-enum": lambda text: text.replace(
-                "authority-failure: stale-until-reconfirmed",
-                "authority-failure: keep-current",
-                1,
-            ),
-            "unknown-contract-record": lambda text: text.replace(
-                "outcome-record: outcome-reference",
-                "outcome-record: imaginary-record",
-                1,
-            ),
-        }
-        for expected_code, mutate in mutations.items():
-            with self.subTest(expected_code=expected_code):
-                with tempfile.TemporaryDirectory() as temporary_directory:
-                    root = Path(temporary_directory)
-                    shutil.copytree(PROJECT_ROOT / "contracts", root / "contracts")
-                    shutil.copytree(PROJECT_ROOT / "skills", root / "skills")
-                    skill_file = root / "skills" / "grill" / "SKILL.md"
-                    skill_file.write_text(
-                        mutate(skill_file.read_text(encoding="utf-8")),
-                        encoding="utf-8",
-                    )
-                    codes = {issue.code for issue in validator.contract_errors(root)}
-                    self.assertIn(expected_code, codes)
-
-    def test_validator_rejects_catalog_projection_and_ownership_drift(self) -> None:
-        mutations = {
-            "contract-record-fields-mismatch": lambda contract: contract["records"][
-                "outcome-reference"
-            ]["required_fields"].append("new_required_field"),
-            "contract-record-availability-mismatch": lambda contract: contract[
-                "records"
-            ]["alignment-snapshot"].__setitem__("availability", "planned"),
-        }
-        for expected_code, mutate in mutations.items():
-            with self.subTest(expected_code=expected_code):
-                with tempfile.TemporaryDirectory() as temporary_directory:
-                    root = Path(temporary_directory)
-                    shutil.copytree(PROJECT_ROOT / "contracts", root / "contracts")
-                    shutil.copytree(PROJECT_ROOT / "skills", root / "skills")
-                    path = root / "contracts" / "usable-loop-v1.json"
-                    contract = json.loads(path.read_text(encoding="utf-8"))
-                    mutate(contract)
-                    path.write_text(
-                        json.dumps(contract, indent=2) + "\n",
-                        encoding="utf-8",
-                    )
-
-                    codes = {issue.code for issue in validator.contract_errors(root)}
-
-                    self.assertIn(expected_code, codes)
-
-    def test_validator_reports_malformed_nested_types_without_crashing(self) -> None:
-        mutations = {
-            "invalid-contract-enum": lambda contract: contract["enums"].__setitem__(
-                "record_availability",
-                7,
-            ),
-            "unknown-contract-skill-reference": lambda contract: contract["records"][
-                "alignment-snapshot"
-            ].__setitem__("producers", 7),
-            "unknown-contract-record": lambda contract: contract["skills"][
-                "grill"
-            ].__setitem__("produces", 7),
-        }
-        for expected_code, mutate in mutations.items():
-            with self.subTest(expected_code=expected_code):
-                with tempfile.TemporaryDirectory() as temporary_directory:
-                    root = Path(temporary_directory)
-                    shutil.copytree(PROJECT_ROOT / "contracts", root / "contracts")
-                    shutil.copytree(PROJECT_ROOT / "skills", root / "skills")
-                    path = root / "contracts" / "usable-loop-v1.json"
-                    contract = json.loads(path.read_text(encoding="utf-8"))
-                    mutate(contract)
-                    path.write_text(json.dumps(contract) + "\n", encoding="utf-8")
-
-                    codes = {issue.code for issue in validator.contract_errors(root)}
-
-                    self.assertIn(expected_code, codes)
-
-    def test_each_skill_is_self_contained_when_copied_alone(self) -> None:
-        for name in sorted(SKILL_NAMES):
-            with self.subTest(skill=name):
-                with tempfile.TemporaryDirectory() as temporary_directory:
-                    copy = Path(temporary_directory) / name
-                    shutil.copytree(PROJECT_ROOT / "skills" / name, copy)
-                    self.assertEqual(validator.standalone_skill_errors(copy), [])
-
-    def test_standalone_skill_rejects_external_required_resource(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            root = Path(temporary_directory)
-            copy = root / "grill"
-            shutil.copytree(PROJECT_ROOT / "skills" / "grill", copy)
-            (root / "shared-contract.md").write_text("external\n", encoding="utf-8")
-            skill_file = copy / "SKILL.md"
-            skill_file.write_text(
-                skill_file.read_text(encoding="utf-8").replace(
-                    "required-local-resources: none",
-                    "required-local-resources: ../shared-contract.md",
-                    1,
-                ),
-                encoding="utf-8",
-            )
-
-            codes = {
-                issue.code for issue in validator.standalone_skill_errors(copy)
-            }
-
-            self.assertIn("external-required-resource", codes)
-
-    def test_first_three_skills_expose_outcome_reference_fields(self) -> None:
-        labels = {
-            "Task ID:",
-            "Outcome Source kind:",
-            "Outcome Source ID:",
-            "Outcome Source locator:",
-            "Outcome Revision:",
-            "Revision basis:",
-            "Outcome Authority:",
-            "Authority basis:",
-            "Outcome lifecycle:",
-            "Outcome snapshot:",
-            "Outcome currentness:",
-            "Stale when:",
-        }
-        for name in ("grill", "spec-lite", "plan-lite"):
-            with self.subTest(skill=name):
-                text = (PROJECT_ROOT / "skills" / name / "SKILL.md").read_text(
-                    encoding="utf-8"
-                )
-                missing = sorted(label for label in labels if label not in text)
-                self.assertEqual(missing, [])
-
-    def test_plan_emits_review_boundary_seed_fields(self) -> None:
-        text = (PROJECT_ROOT / "skills" / "plan-lite" / "SKILL.md").read_text(
+    def test_boundary_runtime_policy_forbids_caller_digest_and_requires_recapture(self) -> None:
+        policy = load_contract()["policies"]["boundary-runtime"]
+        self.assertEqual(policy["caller_supplied_digest"], "forbidden")
+        self.assertIn("second-identical-state-capture", policy["confirm_requires"])
+        self.assertIn("state-drift", policy["fail_on"])
+        runtime = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_text(
             encoding="utf-8"
         )
-        for label in (
-            "Expected logical changes:",
-            "Dependent or generated changes:",
-            "Authorization guardrails:",
-            "Known pre-existing changes:",
-            "Participating workspaces:",
-            "Base and recovery hints:",
-            "Open boundary questions:",
-        ):
-            self.assertIn(label, text)
+        self.assertNotIn("review_boundary_digest", runtime)
 
-    def test_review_boundary_reference_projects_machine_enums_and_layers(self) -> None:
+    def test_each_skill_has_standard_frontmatter_and_v2_binding(self) -> None:
         contract = load_contract()
-        text = (
-            PROJECT_ROOT
-            / "skills"
-            / "two-axis-review"
-            / "references"
-            / "review-boundary.md"
-        ).read_text(encoding="utf-8")
-        for value in (
-            *contract["enums"]["review_target"],
-            *contract["enums"]["review_classification"],
-            "committed",
-            "staged",
-            "unstaged",
-            "untracked",
-            "declared-ignored",
+        for name in sorted(SKILL_NAMES):
+            with self.subTest(skill=name):
+                skill_root = PROJECT_ROOT / "skills" / name
+                text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+                frontmatter = re.match(r"\A---\n(.*?)\n---\n", text, re.DOTALL)
+                self.assertIsNotNone(frontmatter)
+                values = yaml.safe_load(frontmatter.group(1))
+                self.assertEqual(set(values), {"name", "description"})
+                self.assertEqual(values["name"], name)
+                self.assertIn("contract: usable-loop/v2", text)
+                self.assertIn(
+                    f"role: {contract['skills'][name]['role']}", text
+                )
+                reference = skill_root / "references" / "usable-loop-v2.md"
+                self.assertTrue(reference.is_file())
+                self.assertIn("Contract: usable-loop/v2", reference.read_text())
+
+    def test_runtime_skills_are_standalone_and_generated(self) -> None:
+        canonical = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_bytes()
+        for name in (
+            "branch-sandbox",
+            "feedback-loop",
+            "two-axis-review",
+            "verify-before-claim",
         ):
-            with self.subTest(value=value):
-                self.assertIn(f"`{value}`", text)
-        self.assertIn("Do not run a blanket ignored-file scan", text)
-        self.assertIn("Avoid a digest cycle", text)
+            with self.subTest(skill=name):
+                local = PROJECT_ROOT / "skills" / name / "scripts" / "handrails_state.py"
+                self.assertEqual(local.read_bytes(), canonical)
+                completed = subprocess.run(
+                    [sys.executable, str(local), "--help"],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                self.assertIn("inventory", completed.stdout)
+
+    def test_generated_contract_projections_are_current(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "scripts/render_contract.py", "--check"],
+            cwd=PROJECT_ROOT,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+
+    def test_openai_metadata_keeps_explicit_invocation_and_default_prompt(self) -> None:
+        for name in sorted(SKILL_NAMES):
+            with self.subTest(skill=name):
+                metadata = yaml.safe_load(
+                    (
+                        PROJECT_ROOT / "skills" / name / "agents" / "openai.yaml"
+                    ).read_text(encoding="utf-8")
+                )
+                self.assertFalse(metadata["policy"]["allow_implicit_invocation"])
+                self.assertIn(f"${name}", metadata["interface"]["default_prompt"])
+                self.assertLessEqual(
+                    len(metadata["interface"]["short_description"]), 64
+                )
+
+    def test_atomic_skill_promises_are_visible_in_main_instructions(self) -> None:
+        required = {
+            "branch-sandbox": ("explicit authorization", "report the cleanup command"),
+            "feedback-loop": ("development evidence", "cannot support a completion claim"),
+            "two-axis-review": ("Outcome Fit", "Review Record"),
+            "verify-before-claim": ("`fact`", "`scoped-task`", "`high-assurance`"),
+        }
+        for name, terms in required.items():
+            text = (PROJECT_ROOT / "skills" / name / "SKILL.md").read_text(
+                encoding="utf-8"
+            )
+            for term in terms:
+                with self.subTest(skill=name, term=term):
+                    self.assertIn(term, text)
 
 
 if __name__ == "__main__":
