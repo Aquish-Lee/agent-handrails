@@ -173,6 +173,14 @@ class UsableLoopV2ContractTests(unittest.TestCase):
                 with self.subTest(skill=name, term=term):
                     self.assertIn(term, text)
 
+    def test_fact_route_does_not_eagerly_load_full_contract(self) -> None:
+        text = (PROJECT_ROOT / "skills" / "verify-before-claim" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("For a fact, do **not** load the local", text)
+        self.assertIn("state runtime", text)
+        self.assertIn("claim_kind=fact", text)
+
 
 if __name__ == "__main__":
     unittest.main()

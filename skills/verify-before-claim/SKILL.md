@@ -15,8 +15,11 @@ reference: references/usable-loop-v2.md
 runtime: scripts/handrails_state.py
 -->
 
-Read [the local v2 contract](references/usable-loop-v2.md) for full Claim,
-Claim Evidence, Boundary, and Review Record fields.
+The `fact` route below is self-contained. For a fact, do **not** load the local
+reference or state runtime unless the user explicitly requests a full record
+schema. For `scoped-task` or `high-assurance`, read
+[the local v2 contract](references/usable-loop-v2.md) for full Claim Evidence,
+Boundary, Review, and Claim Record fields.
 
 ## Route by claim width
 
@@ -28,6 +31,10 @@ A narrow observable statement: a command exited successfully, a file exists, a
 configuration reads back to a value, or one named check passed. Run the smallest
 direct observation. Produce fresh Claim Evidence and a Claim Record. Do not
 require a Claim Boundary or Review Record.
+
+For the compact fact result, state claim wording, `claim_kind=fact`, exact check
+and result, scope limit, and stale condition. An Evidence ID is optional in the
+displayed result unless another consumer needs it.
 
 ### `scoped-task`
 
