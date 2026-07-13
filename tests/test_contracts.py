@@ -82,7 +82,7 @@ class UsableLoopContractTests(unittest.TestCase):
         self.assertEqual(paths["no-spec"]["consumer"], "plan-lite")
         self.assertEqual(paths["with-spec"]["consumer"], "plan-lite")
 
-    def test_task2_activates_only_records_projected_by_current_skills(self) -> None:
+    def test_task3_activates_all_records_projected_by_current_skills(self) -> None:
         records = load_contract()["records"]
         active = {
             name
@@ -102,16 +102,20 @@ class UsableLoopContractTests(unittest.TestCase):
                 "evidence-record",
                 "review-boundary",
                 "claim-record",
+                "checkpoint",
             },
         )
-        self.assertEqual(records["checkpoint"]["availability"], "planned")
 
-    def test_task2_record_ownership_matches_the_review_and_evidence_flow(self) -> None:
+    def test_task3_record_ownership_matches_the_review_and_evidence_flow(self) -> None:
         skills = load_contract()["skills"]
+        for skill_name, declaration in skills.items():
+            with self.subTest(skill=skill_name):
+                self.assertEqual(declaration["planned_consumes"], [])
+                self.assertEqual(declaration["planned_produces"], [])
         self.assertIn("work-boundary", skills["branch-sandbox"]["produces"])
-        self.assertEqual(skills["feedback-loop"]["planned_produces"], ["checkpoint"])
+        self.assertEqual(skills["feedback-loop"]["planned_produces"], [])
         self.assertTrue(
-            {"code-state-token", "evidence-record"}.issubset(
+            {"checkpoint", "code-state-token", "evidence-record"}.issubset(
                 skills["feedback-loop"]["produces"]
             )
         )
@@ -160,7 +164,7 @@ class UsableLoopContractTests(unittest.TestCase):
             },
         )
 
-    def test_task2_active_records_bind_state_boundary_evidence_and_claims(self) -> None:
+    def test_task3_active_records_bind_state_boundary_evidence_and_claims(self) -> None:
         records = load_contract()["records"]
         expectations = {
             "work-boundary": {
@@ -198,6 +202,19 @@ class UsableLoopContractTests(unittest.TestCase):
                 "evidence_ids",
                 "status",
             },
+            "checkpoint": {
+                "outcome_reference",
+                "boundary_state",
+                "code_state_token",
+                "repro_or_baseline",
+                "change_delta",
+                "next",
+                "blockers",
+                "evidence_delta",
+                "supported_claims",
+                "still_unverified",
+                "stale_when",
+            },
         }
         for record_name, required_fields in expectations.items():
             with self.subTest(record=record_name):
@@ -205,6 +222,63 @@ class UsableLoopContractTests(unittest.TestCase):
                 self.assertTrue(
                     required_fields.issubset(records[record_name]["required_fields"])
                 )
+
+    def test_checkpoint_persistence_is_conversation_first_and_single_rewrite(self) -> None:
+        contract = load_contract()
+        persistence = contract["policies"]["checkpoint-persistence"]
+        self.assertEqual(persistence["default"], "conversation-only")
+        self.assertEqual(
+            set(persistence["materialize_when"]),
+            {
+                "cross-session-or-agent-handoff",
+                "context-compaction-risk",
+                "pause-or-block",
+                "relevant-uncommitted-state-at-handoff",
+                "expensive-or-nonrepeatable-evidence",
+            },
+        )
+        self.assertEqual(
+            contract["policies"]["local-capsule-write"]["default"],
+            "single-compact-rewrite",
+        )
+
+    def test_feedback_skill_projects_complete_checkpoint_and_capsule_rules(self) -> None:
+        text = (PROJECT_ROOT / "skills" / "feedback-loop" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        for label in (
+            "Outcome Reference:",
+            "Boundary state:",
+            "Code State Token:",
+            "Repro or baseline:",
+            "Change delta:",
+            "Done:",
+            "Next:",
+            "Blockers:",
+            "Decision delta:",
+            "Evidence delta:",
+            "Supported claims:",
+            "Still unverified:",
+            "Delete when:",
+        ):
+            with self.subTest(label=label):
+                self.assertIn(label, text)
+        self.assertIn(".scratch/<task-id>/STATE.md", text)
+        self.assertIn("conversation only", text.lower())
+        self.assertIn("rewrite", text.lower())
+        self.assertIn("Git ignore is not secure storage", text)
+
+    def test_practical_playbook_keeps_microtasks_ephemeral_and_resume_order_safe(self) -> None:
+        text = (
+            PROJECT_ROOT / "playbooks" / "practical-development-loop.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Create no plan, spec, Capsule, or review document", text)
+        self.assertIn("exactly one `.scratch/<task-id>/STATE.md`", text)
+        outcome_position = text.index("Read and reconcile the designated Outcome Source")
+        capsule_position = text.index("Read the Capsule")
+        state_position = text.index("Recapture all participating state")
+        self.assertLess(outcome_position, capsule_position)
+        self.assertLess(capsule_position, state_position)
 
     def test_every_handrail_can_bootstrap_a_provisional_reference(self) -> None:
         contract = load_contract()
@@ -320,8 +394,8 @@ class UsableLoopContractTests(unittest.TestCase):
                 "outcome-reference"
             ]["required_fields"].append("new_required_field"),
             "contract-record-availability-mismatch": lambda contract: contract[
-                "skills"
-            ]["grill"]["produces"].append("checkpoint"),
+                "records"
+            ]["alignment-snapshot"].__setitem__("availability", "planned"),
         }
         for expected_code, mutate in mutations.items():
             with self.subTest(expected_code=expected_code):

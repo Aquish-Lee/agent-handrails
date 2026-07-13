@@ -186,6 +186,8 @@ If confidence is low because important project facts were not inspected, say wha
 
 Default to keeping plan context in the current conversation. Plans are often temporary and should not create stale project documentation by default.
 
+When a continuity trigger requires a Local Capsule, let the Capsule point to this plan/Outcome Reference and preserve only the current next action, blocker, boundary/state binding, and evidence delta. Do not copy the whole plan into phase logs. On resume, reconcile the Outcome Source and repository state before treating the plan as current.
+
 Recommend saving a plan to a file only when one of these is true:
 
 - Multiple sessions or agents must coordinate from it.

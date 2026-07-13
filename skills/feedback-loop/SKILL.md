@@ -187,6 +187,55 @@ Evidence is `fresh` only when the before/after token's relevant fields match, th
 
 Evidence captured in a child worktree supports only that worktree state. It does not support an integration claim until the integrated workspace receives its own capture and verification.
 
+## Return a Checkpoint-compatible Feedback result
+
+End every invocation with this compact Feedback result, even when no file is written:
+
+```text
+## Feedback result / Checkpoint
+Task ID:
+Outcome Reference: complete usable-loop/v1 record, including locator, revision, authority, snapshot, and stale conditions
+Boundary state: seed | confirmed digest | unresolved, with participating workspaces
+Code State Token: exact token or unconfirmed/not-applicable with reason
+Repro or baseline:
+Change delta:
+Done:
+Next:
+Blockers:
+Decision delta:
+Evidence delta: Evidence IDs, freshness, and scope
+Supported claims:
+Still unverified:
+Stale when:
+Delete when: optional; only for a materialized Local Capsule
+```
+
+Keep this result in the conversation only by default. A clear, single-session task must not create a checkpoint file merely because this skill ran.
+
+Materialize a Local Capsule only when continuity would otherwise be costly or unsafe:
+
+- work crosses a session or agent handoff;
+- context compaction/loss is imminent or has occurred;
+- work pauses or is blocked before a clean handoff;
+- relevant uncommitted state must be recovered later; or
+- evidence is expensive, environment-specific, or non-repeatable.
+
+When a trigger applies and local project writes are allowed, compactly rewrite exactly one living `.scratch/<task-id>/STATE.md`. Do not append phase logs and do not create sibling checkpoint/spec files. Use a stable filesystem-safe task slug contained under `.scratch/`; never interpolate path separators or `..` from an untrusted Task ID.
+
+The Capsule must preserve the complete Checkpoint above, including unsupported claims and scope limits. It is an orientation cache, not an Outcome Source, authority, revision, or freshness proof. If writing is unavailable, return the same complete record in conversation and state `Capsule: not persisted`.
+
+Keep only compact observations, Evidence IDs, locators, digests, and reproducible commands. Never copy credentials, tokens, private keys, secret values, or large/raw logs into the Capsule; Git ignore is not secure storage.
+
+On resume:
+
+1. Read the designated Outcome Source first when accessible and compare its exact revision.
+2. Read the one Capsule to restore orientation, next action, blockers, and prior evidence IDs.
+3. Recapture every participating repository/workspace and relevant environment before trusting evidence.
+4. Mark mismatched evidence stale and run only the focused revalidation needed for the next claim.
+5. If authority is unavailable, conflicting, or revision-mismatched, resume provisional/stale and request reconciliation before reusing outcome-dependent claims.
+
+Delete the Capsule only after integration or a clean durable handoff, and only after every unique decision, defect, evidence recipe, or follow-up has been promoted to an Issue/PR/spec/ADR or made reproducible elsewhere. Never delete it merely because one check passed.
+
 ## Good evidence checklist
 
 - Names behavior in domain language.

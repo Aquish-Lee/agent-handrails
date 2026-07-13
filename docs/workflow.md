@@ -74,6 +74,18 @@ A fixed commit range is useful but incomplete when task work is staged, unstaged
 
 For current-state review, account for committed, staged, unstaged, untracked, explicitly declared ignored artifacts, and all participating worktrees. Do not scan undeclared ignored files. Treat task-created unexpected changes as scope creep, and block approval while any candidate is unresolved or the boundary/state changed after evidence capture.
 
+## Conversation-first continuity
+
+Every `feedback-loop` result is Checkpoint-compatible, but persistence remains proportional:
+
+1. Keep clear single-session work in conversation only.
+2. Compactly rewrite one `.scratch/<task-id>/STATE.md` when a session/agent handoff, context loss, pause/block, relevant uncommitted state that must survive a handoff, or expensive evidence makes reconstruction risky.
+3. Promote durable project knowledge to an Issue, PR, spec, or ADR; do not accumulate phase logs.
+
+The Local Capsule stores the current Outcome locator/revision/authority/snapshot, boundary and state bindings, next/blocker, evidence/claim status, scope limits, and invalidation/cleanup rules. It never becomes authority. Resume by reading the Outcome Source first, then the Capsule, then recapturing repository/workspace/environment state before reusing evidence.
+
+Delete the Capsule only after integration or a clean durable handoff and after all unique information is promoted or reproducible. A passing test alone is not a cleanup signal.
+
 ## Task shapes, not rigid levels
 
 Software engineering work is open-ended. These shapes are a shared vocabulary for choosing how much process is useful, not a classifier that restricts the agent.

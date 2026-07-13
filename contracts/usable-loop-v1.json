@@ -21,6 +21,10 @@
       "blocked",
       "stale"
     ],
+    "checkpoint_persistence": [
+      "conversation-only",
+      "local-capsule"
+    ],
     "evidence_binding": [
       "exact-state"
     ],
@@ -32,6 +36,9 @@
     ],
     "missing_outcome_reference": [
       "bootstrap-provisional"
+    ],
+    "local_capsule_write": [
+      "single-compact-rewrite"
     ],
     "outcome_authority": [
       "authoritative",
@@ -131,6 +138,24 @@
       "enum": "ignored_artifact_declaration",
       "default": "explicit-only"
     },
+    "checkpoint-persistence": {
+      "enum": "checkpoint_persistence",
+      "default": "conversation-only",
+      "materialize_when": [
+        "cross-session-or-agent-handoff",
+        "context-compaction-risk",
+        "pause-or-block",
+        "relevant-uncommitted-state-at-handoff",
+        "expensive-or-nonrepeatable-evidence"
+      ]
+    },
+    "local-capsule-write": {
+      "enum": "local_capsule_write",
+      "default": "single-compact-rewrite",
+      "path": ".scratch/<task-id>/STATE.md",
+      "authority": "orientation-only",
+      "cleanup": "after-integration-and-unique-information-promotion"
+    },
     "evidence-binding": {
       "enum": "evidence_binding",
       "default": "exact-state",
@@ -198,11 +223,14 @@
       ]
     },
     "checkpoint": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "task_id",
         "outcome_reference",
         "boundary_state",
+        "code_state_token",
+        "repro_or_baseline",
+        "change_delta",
         "done",
         "next",
         "blockers",
@@ -215,6 +243,22 @@
       "optional_fields": [
         "delete_when"
       ],
+      "markdown_labels": {
+        "task_id": "Task ID:",
+        "outcome_reference": "Outcome Reference:",
+        "boundary_state": "Boundary state:",
+        "code_state_token": "Code State Token:",
+        "repro_or_baseline": "Repro or baseline:",
+        "change_delta": "Change delta:",
+        "done": "Done:",
+        "next": "Next:",
+        "blockers": "Blockers:",
+        "decision_delta": "Decision delta:",
+        "evidence_delta": "Evidence delta:",
+        "supported_claims": "Supported claims:",
+        "still_unverified": "Still unverified:",
+        "stale_when": "Stale when:"
+      },
       "producers": [
         "feedback-loop"
       ]
@@ -583,13 +627,12 @@
       ],
       "produces": [
         "outcome-reference",
+        "checkpoint",
         "code-state-token",
         "evidence-record"
       ],
       "planned_consumes": [],
-      "planned_produces": [
-        "checkpoint"
-      ],
+      "planned_produces": [],
       "missing_outcome_reference": "bootstrap-provisional",
       "authority_failure": "stale-until-reconfirmed"
     },
@@ -664,7 +707,8 @@
         "outcome-reference",
         "review-boundary",
         "code-state-token",
-        "evidence-record"
+        "evidence-record",
+        "checkpoint"
       ],
       "produces": [
         "outcome-reference",

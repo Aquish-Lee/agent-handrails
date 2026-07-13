@@ -73,11 +73,11 @@ A reproducible digest of the confirmed inventory, classifications, and workspace
 
 ### Checkpoint
 
-A compact structured view of current task state: outcome reference, boundary state, done/next/blockers, decisions, evidence, claims, and invalidation rules. It lives in conversation by default.
+A compact structured view of current task state: outcome reference, boundary/state token, repro/baseline, change and evidence deltas, done/next/blockers, claims, and invalidation rules. It lives in conversation by default.
 
 ### Local Capsule
 
-The optional, single, rewritten `.scratch/<task-id>/STATE.md` representation of a Checkpoint. It restores orientation after continuity risk but never supplies authority, Outcome Revision, or evidence freshness.
+The optional, single, compactly rewritten `.scratch/<task-id>/STATE.md` representation of a Checkpoint. It is materialized only for continuity risk, restores orientation, and never supplies authority, Outcome Revision, or evidence freshness.
 
 ### Code State Token
 

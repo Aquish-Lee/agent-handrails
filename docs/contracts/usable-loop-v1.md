@@ -160,12 +160,13 @@ The active Git Code State Token captures repository/workspace identity, base and
 
 `verify-before-claim` captures again immediately before the final claim. A supported Claim Record names its evidence IDs and cannot exceed their narrow scope. Child-worktree evidence supports only that child state until the integrated state is captured and verified.
 
-## Planned Checkpoint and current Local Capsule policy
+## Checkpoint and Local Capsule policy
 
-The planned Checkpoint record will contain:
+Every `feedback-loop` result contains an active Checkpoint with:
 
 - Task ID and Outcome Reference;
 - work/review boundary state;
+- Code State Token, repro/baseline, and change delta;
 - done, next, and blockers;
 - decision and evidence deltas;
 - supported claims and still-unverified claims;
@@ -177,23 +178,25 @@ Persistence is tiered:
 2. One rewritten `.scratch/<task-id>/STATE.md` Local Capsule when continuity risk or reconstruction cost becomes material.
 3. Issue, PR, spec, or ADR only for durable project coordination.
 
-A Local Capsule never becomes an Outcome Source, confirms authority, supersedes a reference, or restores evidence freshness. If it differs from the designated authority, the Capsule is stale. Delete it after integration when unique durable information has been promoted and no unique local evidence remains.
+Materialize the Local Capsule only for a cross-session/agent handoff, context-compaction risk, pause/block, relevant uncommitted state that must survive a handoff, or expensive/non-repeatable evidence. Compactly rewrite the one living file; do not append phase logs or create sibling handoff documents.
+
+A Local Capsule never becomes an Outcome Source, confirms authority, supersedes a reference, or restores evidence freshness. Git ignore is not secure storage: store compact observations, IDs, locators, digests, and reproducible commands, never credentials, secret values, or raw logs. Resume by reading the designated Outcome Source first, then the Capsule, then recapturing all participating state/environment. If it differs from authority or state, the Capsule/evidence is stale as applicable. Delete it only after integration or clean durable handoff, when unique durable information has been promoted or made reproducible.
 
 ## Producer and consumer ownership
 
-| Skill | Active inputs/outputs through Task 2 | Planned role-owned records |
-| --- | --- | --- |
-| `grill` | request/Outcome Reference → Alignment Snapshot and exact Outcome Reference | — |
-| `spec-lite` | Outcome Reference/Alignment Snapshot → Outcome Contract and exact Outcome Reference | — |
-| `plan-lite` | Outcome Reference/Alignment Snapshot/Outcome Contract → Implementation Plan and Review Boundary Seed | — |
-| `branch-sandbox` | Outcome Reference → Work Boundary and recovery identity | — |
-| `feedback-loop` | Outcome Reference/seed/work boundary → Code State Token and Evidence Records | Checkpoint |
-| `two-axis-review` | Outcome/boundary/state/evidence inputs → Review Boundary, Boundary Digest, Code State Token, and findings | — |
-| `verify-before-claim` | Outcome/boundary/state/evidence inputs → Code State Token and scoped Claim Records | — |
+| Skill | Active inputs/outputs through Task 3 |
+| --- | --- |
+| `grill` | request/Outcome Reference → Alignment Snapshot and exact Outcome Reference |
+| `spec-lite` | Outcome Reference/Alignment Snapshot → Outcome Contract and exact Outcome Reference |
+| `plan-lite` | Outcome Reference/Alignment Snapshot/Outcome Contract → Implementation Plan and Review Boundary Seed |
+| `branch-sandbox` | Outcome Reference → Work Boundary and recovery identity |
+| `feedback-loop` | Outcome Reference/seed/work boundary → Checkpoint, Code State Token, and Evidence Records |
+| `two-axis-review` | Outcome/boundary/state/evidence inputs → Review Boundary, Boundary Digest, Code State Token, and findings |
+| `verify-before-claim` | Outcome/boundary/state/evidence/checkpoint inputs → Code State Token and scoped Claim Records |
 
 Any skill may bootstrap the common provisional Outcome Reference. Only the role owner produces its specialized record: for example, `plan-lite` produces a Review Boundary Seed, never the final Review Boundary.
 
-Outcome Reference, Alignment Snapshot, Outcome Contract, Implementation Plan, Review Boundary Seed, Work Boundary, Code State Token, Evidence Record, Review Boundary, and Claim Record are active. Only Checkpoint remains planned for the next slice.
+All records in `usable-loop/v1` are active and projected by their owning standalone skills.
 
 ## Invalidation
 

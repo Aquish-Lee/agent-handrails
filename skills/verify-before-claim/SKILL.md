@@ -106,6 +106,8 @@ A proven unrelated edit is not an automatic pass. Reconcile it into a new candid
 
 For a non-repository operational claim, state `Code State Token: not applicable — claim does not depend on repository state` and bind the claim to the exact environment/readback evidence instead. Do not use this exception for code completion, review, integration, build, or deployment-artifact claims.
 
+When resuming from a Checkpoint or Local Capsule, treat it as an index to the Outcome Source, Review Boundary, Evidence IDs, and next proof—not as proof itself. Re-read the designated Outcome Source when accessible and recapture state before verification. If the Capsule's revision, boundary, environment, or state differs, mark the affected evidence/claims stale.
+
 ## Claim-shaped calibration, not rigid levels
 
 Choose evidence by the shape of the claim. These are calibration aids, not gates.
@@ -286,6 +288,10 @@ Verified | Partially verified | Not verified | Verification failed
 ## Remaining risk / next step
 - ...
 ````
+
+After producing the Claim Record, feed its exact status, Evidence IDs, scope limit, stale conditions, and remaining proof into the next `feedback-loop` Checkpoint-compatible result. If one living `.scratch/<task-id>/STATE.md` exists, compactly rewrite it through that checkpoint behavior; do not append a verification log or create another handoff file.
+
+Delete an existing Capsule only after the verified state is integrated or durably handed off and all unique information has been promoted or made reproducible. A passing check or `supported` Claim Record alone is not sufficient cleanup evidence.
 
 ## Language discipline
 

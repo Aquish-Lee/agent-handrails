@@ -56,6 +56,8 @@ Creating or saving a spec does not itself increase authority. A materially chang
 
 When a new spec revision supersedes an earlier reference, mark the prior reference lifecycle `superseded`; only the new reference remains `active`.
 
+If a Local Capsule points to this spec, keep the spec's source locator and exact Outcome Revision in the Capsule. On resume, read this spec first and compare revisions; never reconstruct or overwrite spec authority from the Capsule snapshot. Promote durable outcome decisions here only when a spec is already warranted—do not create a spec merely to empty a Capsule.
+
 Never describe an Outcome Revision as a hash or digest unless it was actually computed over identified canonical bytes; otherwise use an honest task-local opaque revision such as `r1`.
 
 ## When to use
