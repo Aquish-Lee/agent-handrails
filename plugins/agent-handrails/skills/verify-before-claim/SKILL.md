@@ -5,8 +5,8 @@ description: Verify a requested fact, scoped task completion, or high-assurance 
 
 # Verify Before Claim
 
-Choose the least expensive path that is still safe for the width of the claim.
-Never broaden the claim beyond fresh evidence.
+Choose the least expensive safe path for the claim width. Never broaden the
+claim beyond fresh evidence.
 
 <!-- handrails-contract
 contract: usable-loop/v2
@@ -15,47 +15,32 @@ reference: references/usable-loop-v2.md
 runtime: scripts/handrails_state.py
 -->
 
-The `fact` and `scoped-task` routes below are self-contained. For either route,
-do **not** load the local reference, inspect runtime source, or call runtime
-`--help` unless execution fails or the user explicitly requests a full record
-schema. For `high-assurance`, read [the local v2 contract](references/usable-loop-v2.md)
-for the full Review and Claim Record fields.
+The `fact` and `scoped-task` routes are self-contained. Do **not** reread this
+SKILL.md, load the local reference, inspect runtime source, or call runtime
+`--help` unless execution fails or the user requests a full schema.
 
 ## Route by claim width
 
-Classify the requested wording before running checks:
-
 ### `fact`
 
-A narrow observable statement: a command exited successfully, a file exists, a
-configuration reads back to a value, or one named check passed. Run the smallest
-direct observation. Produce fresh Claim Evidence and a Claim Record. Do not
-require a Claim Boundary or Review Record.
-
-For the compact fact result, state claim wording, `claim_kind=fact`, exact check
-and result, scope limit, and stale condition. An Evidence ID is optional in the
-displayed result unless another consumer needs it.
+A narrow observable statement such as a command result, file existence, config
+readback, or one named check. Run the smallest observation. Produce fresh Claim
+Evidence and a Claim Record without a boundary or review. Return claim wording,
+`claim_kind=fact`, check/result, scope limit, and stale condition.
 
 ### `scoped-task`
 
-Completion of a bounded small code task. Inventory every current candidate,
-classify all Candidate/Hunk IDs as `include-claim` or
-`exclude-proven-unrelated`, include rationale and authorization, and confirm a
-Claim Boundary:
+Completion of a bounded small code task. Resolve `<this-skill-dir>` from this
+installed Skill; in this source repository use `runtime/handrails_state.py`.
+Inventory all current candidates:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py inventory \
   --compact --repository . --base <task-base> [...]
-python <this-skill-dir>/scripts/handrails_state.py confirm \
-  --compact --kind claim --classifications <file|-> \
-  --repository . --base <task-base> [...same capture arguments...]
 ```
 
-Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
-In this source repository, use `runtime/handrails_state.py`.
-
-Pass this exact classification shape, preferably through stdin so verification
-does not leave a task artifact:
+For each candidate with hunks, classify every runtime `hunk_id`; otherwise
+classify its `candidate_id`. Pass exactly this shape through stdin:
 
 ```json
 {
@@ -73,57 +58,50 @@ does not leave a task artifact:
 }
 ```
 
-Every compact inventory `logical_units[].target_id` must appear exactly once.
-Included units require `authorized`; excluded proven-unrelated units require
-`not-applicable`. Do not invent IDs or a digest. After the narrow checks, run
-the same compact inventory once more and require the Inventory Digest to match;
-otherwise mark evidence stale and block the claim.
+Use each runtime target ID exactly once. `include-claim` requires `authorized`;
+`exclude-proven-unrelated` requires `not-applicable`. Never invent an ID or
+digest. Confirm the Claim Boundary with the same capture arguments:
 
-Run the narrow checks against that exact state. The Claim Record carries
-`claim_boundary_digest` and no Review ID.
+```bash
+python <this-skill-dir>/scripts/handrails_state.py confirm \
+  --compact --kind claim --classifications - \
+  --repository . --base <task-base> [...]
+```
+
+Run narrow checks. Then rerun compact inventory through a JSON filter that emits
+only `inventory_digest`; require it to equal the confirmed digest. Drift blocks
+the claim. The Claim Record carries `claim_boundary_digest`, not Review ID.
 
 ### `high-assurance`
 
-Merge-ready, integrated, production/deployment safe, no regressions, or an
-equivalently broad claim. Require a formal Review Record. Validate its canonical
-boundary and recapture current state:
+Merge-ready, integrated, production/deployment safe, no-regressions, or similar.
+Read [the local v2 contract](references/usable-loop-v2.md). Require a formal
+Review Record, validate its boundary, and recapture current state:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py capture \
   --boundary <review-boundary.json>
 ```
 
-Outcome Revision, Boundary Digest, and Code State Token must match exactly and
-the recommendation/evidence must support the requested wording. The Claim
-Record carries `review_id` and no Claim Boundary Digest.
-
-If wording is ambiguous, route to the wider safe class or narrow the proposed
-claim explicitly. A micro fact must not trigger a hidden review transition.
+Outcome Revision, Boundary Digest, and Code State Token must match exactly. The
+Claim Record carries `review_id`, not Claim Boundary Digest. If wording is
+ambiguous, widen the route or explicitly narrow the claim. Never hide a review
+transition inside a micro fact.
 
 ## Produce claim evidence
 
-Only this skill produces Claim Evidence with `fresh | stale | blocked`. Record:
+Only this skill produces Claim Evidence with `fresh | stale | blocked`.
+Development evidence is orientation only. Record Evidence ID, task/outcome,
+exact state and environment, boundary/review link, check/result, narrow scope,
+capture time, and stale conditions. Outcome, boundary, relevant code state, or
+environment changes stale it; rerun the narrow check.
 
-- Evidence ID, Task ID, Outcome Revision;
-- exact code state, boundary/review link when applicable, and environment;
-- command/observation, observed result, and narrow scope;
-- status, capture time, and stale conditions.
-
-Development evidence from Feedback Loop is orientation only. Rerun the needed
-check; do not relabel `observed` evidence as `fresh`. Any relevant outcome,
-boundary, code-state, or environment change makes claim evidence stale. v2 does
-not preserve it after proving a change unrelated.
-
-## Produce the Claim Record
-
-State exact claim wording, `fact | scoped-task | high-assurance`, Evidence IDs,
-`supported | limited | unsupported | blocked | stale`, scope limitations, and
-invalidation conditions. Never say done, safe, integrated, or regression-free
-when the evidence only supports a narrower fact.
+The Claim Record states exact wording, claim kind, Evidence IDs, `supported |
+limited | unsupported | blocked | stale`, scope limits, and invalidation. Never
+say done, safe, integrated, or regression-free beyond the evidence.
 
 ## Direct result
 
 For a fact, use at most 12 lines. For a scoped task, use at most 30 lines.
-Default to conclusion, evidence, scope limit, and necessary next step. Expand
-full records only on explicit request or a Checkpoint trigger. Do not feed the
-result back into Feedback Loop as a mandatory step.
+Return conclusion, evidence, scope limit, and necessary next step. Expand only
+on explicit request or a Checkpoint trigger. No mandatory Feedback Loop backflow.

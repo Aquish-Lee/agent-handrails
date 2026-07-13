@@ -177,16 +177,16 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         text = (PROJECT_ROOT / "skills" / "verify-before-claim" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("The `fact` and `scoped-task` routes below are self-contained", text)
+        self.assertIn("The `fact` and `scoped-task` routes are self-contained", text)
         self.assertIn("claim_kind=fact", text)
 
     def test_scoped_route_uses_compact_runtime_without_source_inspection(self) -> None:
         text = (PROJECT_ROOT / "skills" / "verify-before-claim" / "SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("The `fact` and `scoped-task` routes below are self-contained", text)
+        self.assertIn("The `fact` and `scoped-task` routes are self-contained", text)
         self.assertIn("--compact --kind claim", text)
-        self.assertIn("do **not** load the local reference, inspect runtime source", text)
+        self.assertIn("load the local reference, inspect runtime source", text)
 
 
 if __name__ == "__main__":

@@ -363,8 +363,10 @@ class BoundaryCliTests(HandrailsStateFixture):
         inventory = json.loads(inventory_completed.stdout)
         self.assertNotIn("canonical_payload", inventory)
         self.assertNotIn("capture_spec", inventory)
-        self.assertEqual(len(inventory["logical_units"]), 2)
-        self.assertTrue(all(unit["target_id"] for unit in inventory["logical_units"]))
+        self.assertEqual(len(inventory["candidates"]), 2)
+        self.assertTrue(all(candidate["candidate_id"] for candidate in inventory["candidates"]))
+        tracked = next(candidate for candidate in inventory["candidates"] if candidate["hunks"])
+        self.assertTrue(tracked["hunks"][0]["hunk_id"])
 
         inventory_git_state = self.runtime.inventory_git_state(
             repository=self.repository,

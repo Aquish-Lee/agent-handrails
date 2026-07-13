@@ -716,54 +716,43 @@ def _read_json(path: str | Path) -> dict[str, object]:
 
 
 def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
-    logical_units: list[dict[str, object]] = []
+    workspace_indexes = {
+        str(workspace["path"]): index for index, workspace in enumerate(result["workspaces"])
+    }
+    candidates: list[dict[str, object]] = []
     for candidate_value in result["candidates"]:
         candidate = dict(candidate_value)
-        shared = {
-            "candidate_id": candidate["candidate_id"],
-            "candidate_fingerprint": candidate["fingerprint"],
-            "workspace": candidate["workspace"],
-            "layer": candidate["layer"],
-            "path": candidate["path"],
-            "kind": candidate["kind"],
-        }
-        hunks = list(candidate.get("hunks", []))
-        if hunks:
-            for hunk_value in hunks:
-                hunk = dict(hunk_value)
-                logical_units.append(
-                    {
-                        **shared,
-                        "target_id": hunk["hunk_id"],
-                        "target_fingerprint": hunk["fingerprint"],
-                        "hunk_ordinal": hunk["ordinal"],
-                        "hunk_header": hunk["header"],
-                    }
-                )
-        else:
-            logical_units.append(
-                {
-                    **shared,
-                    "target_id": candidate["candidate_id"],
-                    "target_fingerprint": candidate["fingerprint"],
-                }
-            )
+        hunks = [
+            {
+                "hunk_id": hunk["hunk_id"],
+                "fingerprint": hunk["fingerprint"],
+                "header": hunk["header"],
+            }
+            for hunk in candidate.get("hunks", [])
+        ]
+        candidates.append(
+            {
+                "candidate_id": candidate["candidate_id"],
+                "fingerprint": candidate["fingerprint"],
+                "workspace_index": workspace_indexes[str(candidate["workspace"])],
+                "layer": candidate["layer"],
+                "path": candidate["path"],
+                "hunks": hunks,
+            }
+        )
     workspaces = [
         {
+            "index": index,
             "path": workspace["path"],
-            "exact_revision": workspace["exact_revision"],
-            "conflict_paths": workspace["conflict_paths"],
+            "revision": workspace["exact_revision"],
+            "conflicts": workspace["conflict_paths"],
         }
-        for workspace in result["workspaces"]
+        for index, workspace in enumerate(result["workspaces"])
     ]
     return {
-        "contract": result["contract"],
-        "record": result["record"],
         "inventory_digest": result["inventory_digest"],
-        "base_revision": result["base_revision"],
         "workspaces": workspaces,
-        "logical_units": logical_units,
-        "captured_at": result["captured_at"],
+        "candidates": candidates,
     }
 
 
@@ -823,7 +812,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = _compact_boundary(result)
         else:
             result = _compact_token(result)
-    json.dump(result, sys.stdout, ensure_ascii=True, sort_keys=True, indent=2)
+    json.dump(
+        result,
+        sys.stdout,
+        ensure_ascii=True,
+        sort_keys=True,
+        indent=None if arguments.compact else 2,
+        separators=(",", ":") if arguments.compact else None,
+    )
     sys.stdout.write("\n")
     return 0
 
