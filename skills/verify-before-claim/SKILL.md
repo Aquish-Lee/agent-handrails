@@ -37,11 +37,15 @@ classify all Candidate/Hunk IDs as `include-claim` or
 Claim Boundary:
 
 ```bash
-python scripts/handrails_state.py inventory --repository . --base <task-base> [...]
-python scripts/handrails_state.py confirm \
+python <this-skill-dir>/scripts/handrails_state.py inventory \
+  --repository . --base <task-base> [...]
+python <this-skill-dir>/scripts/handrails_state.py confirm \
   --kind claim --classifications <file|-> \
   --repository . --base <task-base> [...same capture arguments...]
 ```
+
+Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
+In this source repository, use `runtime/handrails_state.py`.
 
 Run the narrow checks against that exact state. The Claim Record carries
 `claim_boundary_digest` and no Review ID.
@@ -53,7 +57,8 @@ equivalently broad claim. Require a formal Review Record. Validate its canonical
 boundary and recapture current state:
 
 ```bash
-python scripts/handrails_state.py capture --boundary <review-boundary.json>
+python <this-skill-dir>/scripts/handrails_state.py capture \
+  --boundary <review-boundary.json>
 ```
 
 Outcome Revision, Boundary Digest, and Code State Token must match exactly and

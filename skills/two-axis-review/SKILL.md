@@ -31,12 +31,15 @@ Do not equate the review target with commits. Inventory current committed,
 staged, unstaged, untracked, and explicitly declared ignored candidates:
 
 ```bash
-python scripts/handrails_state.py inventory \
+python <this-skill-dir>/scripts/handrails_state.py inventory \
   --repository . --base <task-base> \
   [--participating-worktree <path>] \
   [--declare-ignored <path>] \
   [--environment KEY=VALUE]
 ```
+
+Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
+In this source repository, use `runtime/handrails_state.py`.
 
 Classify every runtime Candidate/Hunk ID exactly once:
 
@@ -53,7 +56,7 @@ files are classified hunk by hunk.
 Confirm with the same capture parameters:
 
 ```bash
-python scripts/handrails_state.py confirm \
+python <this-skill-dir>/scripts/handrails_state.py confirm \
   --kind review --classifications <file|-> \
   --repository . --base <task-base> [...same capture arguments...]
 ```

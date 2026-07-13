@@ -47,8 +47,12 @@ git status --short
 git branch --show-current
 git rev-parse HEAD
 git worktree list
-python scripts/handrails_state.py inventory --repository . --base HEAD
+python <this-skill-dir>/scripts/handrails_state.py inventory --repository . --base HEAD
 ```
+
+Resolve `<this-skill-dir>` from this installed `SKILL.md`, not from the project
+working directory. Inside this source repository, `runtime/handrails_state.py`
+is the canonical equivalent.
 
 The runtime inventories staged, unstaged, committed-since-base, and untracked
 state. Add ignored artifacts only with explicit `--declare-ignored` arguments.

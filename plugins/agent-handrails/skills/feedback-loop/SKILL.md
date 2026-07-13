@@ -44,8 +44,12 @@ regression test.
 Before an important observation, capture state with:
 
 ```bash
-python scripts/handrails_state.py inventory --repository . --base <task-base>
+python <this-skill-dir>/scripts/handrails_state.py inventory \
+  --repository . --base <task-base>
 ```
+
+Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
+In this source repository, use `runtime/handrails_state.py`.
 
 Use the Inventory Digest as the development observation's code-state binding.
 Declare ignored artifacts only when the task explicitly names them. Recapture

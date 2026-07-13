@@ -111,7 +111,10 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
             [
                 "## Deterministic state runtime",
                 "",
-                "Use `scripts/handrails_state.py`. Its interface is:",
+                "Use the `scripts/handrails_state.py` beside this Skill, resolving",
+                "the path from this installed `SKILL.md` rather than the project cwd.",
+                "In the Agent Handrails source repository, the canonical equivalent is",
+                "`runtime/handrails_state.py`. Its interface is:",
                 "",
                 "```text",
                 "inventory",
