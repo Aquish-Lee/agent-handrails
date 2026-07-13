@@ -37,6 +37,8 @@ These are a toolbox, not a mandatory chain.
 
 All seven handrails share the versioned `usable-loop/v1` handoff contract. A stable Task ID and exact Outcome Reference preserve outcome identity, authority, currentness, and invalidation across optional transitions, while every skill remains a valid direct entry point. See [domain context](CONTEXT.md) and the [contract semantics](docs/contracts/usable-loop-v1.md).
 
+For Git-backed development, [`runtime/git_state.py`](runtime/git_state.py) provides read-only mechanical capture of dirty layers, explicitly included local artifacts, participating worktrees, and state fingerprints. Semantic relevance remains a review decision: the helper never decides which changes belong to the task and never scans undeclared ignored files.
+
 ## Manual-first does not mean manual-only
 
 Each skill currently carries cross-platform frontmatter:
@@ -132,6 +134,8 @@ The first bundle-aware check of a complete legacy seven-directory installation r
 
 Managed upgrades stage and verify the entire bundle before atomically replacing the single `current` pointer, so all seven skills change together. First installation and legacy migration modify multiple paths and are not atomic as a whole; caught failures are rolled back. A later apply recovers an intact migration journal when path ownership can be proven; ambiguous crash state is left untouched and reported instead of being guessed away. The deployer does not fsync every file and directory involved and therefore makes no persistence guarantee for sudden power loss.
 
+Generated Python bytecode (`__pycache__`, `*.pyc`, and `*.pyo`) is excluded from source digests and deployed bundles, so local imports and Python-version-specific caches do not change release identity.
+
 `--check` exits `0` when the requested deployment and discovery links are current, `1` for a recognized but non-current state such as a missing deployment, required migration, source drift, link drift, or pending recovery, and `2` when the source or managed layout cannot be safely interpreted. `--apply` exits `0` after successful verification and `2` when preflight refuses the layout or deployment fails. Human-readable status lines may evolve; scripts should use the exit status.
 
 Verified bundles are retained by default; this release performs no automatic pruning. To roll back, use a known-good revision that already contains the bundle-aware deployer, then run `--apply` and `--check` again. Do not use a pre-migration version of `sync_skills.py` against a managed bundle layout or edit the `current` link manually.
@@ -143,6 +147,7 @@ Managed entrypoints and bundle contents are deployment artifacts, not a second d
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/validate.py
+python3 runtime/git_state.py --help
 ```
 
 ## Project status

@@ -748,7 +748,7 @@ class BundleDeploymentTests(unittest.TestCase):
             )
             self.assertEqual(
                 second_spec.runtime_digest,
-                sync_skills.tree_digest(runtime),
+                sync_skills.tree_digest(runtime, ignore_generated_python=True),
             )
             self.assertEqual(
                 sync_skills.check_installation(
@@ -758,6 +758,54 @@ class BundleDeploymentTests(unittest.TestCase):
                     runtime_root=runtime,
                 ).exit_code,
                 0,
+            )
+
+    def test_python_bytecode_is_not_hashed_or_deployed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = self.make_source(root, "v1")
+            runtime = root / "runtime"
+            runtime.mkdir()
+            (runtime / "helper.py").write_text("VALUE = 1\n", encoding="utf-8")
+            clean_spec = sync_skills.bundle_spec(
+                sync_skills.source_skill_roots(source),
+                runtime,
+            )
+            skill_cache = source / "grill" / "__pycache__"
+            skill_cache.mkdir()
+            (skill_cache / "helper.cpython-314.pyc").write_bytes(b"skill-bytecode")
+            runtime_cache = runtime / "__pycache__"
+            runtime_cache.mkdir()
+            (runtime_cache / "helper.cpython-314.pyc").write_bytes(b"runtime-bytecode")
+            (runtime / "orphan.pyc").write_bytes(b"orphan-bytecode")
+
+            dirty_spec = sync_skills.bundle_spec(
+                sync_skills.source_skill_roots(source),
+                runtime,
+            )
+            target = root / "target"
+            installed = sync_skills.apply_bundle(
+                source,
+                target,
+                runtime_root=runtime,
+            )
+            bundle = (
+                target / ".agent-handrails" / "bundles" / installed.bundle_id
+            )
+
+            self.assertEqual(dirty_spec, clean_spec)
+            self.assertEqual(list(bundle.rglob("__pycache__")), [])
+            self.assertEqual(list(bundle.rglob("*.pyc")), [])
+            deployed_cache = bundle / "runtime" / "__pycache__"
+            deployed_cache.mkdir()
+            (deployed_cache / "injected.pyc").write_bytes(b"unexpected")
+            self.assertEqual(
+                sync_skills.check_installation(
+                    source,
+                    target,
+                    runtime_root=runtime,
+                ).exit_code,
+                2,
             )
 
     def test_next_apply_cleans_committed_journal_without_rollback(self) -> None:

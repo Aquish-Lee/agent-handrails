@@ -126,6 +126,10 @@ git rev-parse HEAD
 git worktree list
 ```
 
+Capture this state before creating or switching the sandbox. It is the task-start evidence, not merely setup output. Inventory the current workspace's staged, unstaged, and untracked paths; add ignored paths only when the task explicitly declares them. Record every worktree that will participate, including dependency, generation, verification, or integration worktrees.
+
+When the repository bundle provides `runtime/git_state.py`, prefer its read-only capture for mechanical identities and fingerprints. A standalone copy of this skill remains usable with the Git commands above plus `git diff --cached --name-only`, `git diff --name-only`, and `git ls-files --others --exclude-standard`. Neither path decides task relevance.
+
 If the current tree is dirty, decide explicitly:
 
 - **Commit** if the dirty state is intentional and should be part of the base.
@@ -135,25 +139,34 @@ If the current tree is dirty, decide explicitly:
 
 Do not hide or overwrite dirty state just to proceed.
 
-## Sandbox card
+## Work Boundary / sandbox card
 
-Before launching work, record this compact boundary:
+Before launching work, emit this compact `usable-loop/v1` Work Boundary:
 
 ```markdown
-## Sandbox
-- Task / goal:
-- Non-goals:
-- Base branch / commit:
+## Work Boundary
+- Task ID:
+- Outcome Revision:
+- Workspace identity:
+- Task-start revision:
+- Task-start candidates:
+- Participating workspaces:
+- Expected logical changes:
+- Authorization guardrails:
+- Declared ignored artifacts:
+- Base revision:
+- Recovery identity, if available:
 - Sandbox type: branch | worktree | scratch clone
 - Branch name:
 - Worktree path, if any:
-- Allowed scope / files:
-- Explicitly out of scope:
 - Verification expected:
-- Rollback / abandon path:
+- Rollback path:
+- Stale when:
 ```
 
-This is not a plan. It is a containment contract.
+This is not a path allowlist or implementation plan. Expected paths are hypotheses. Preserve all task-start candidates for later classification: pre-existing does not mean unrelated, and unexpected task-created work remains reviewable scope creep.
+
+Use `None declared` when no ignored artifact was explicitly named. Never infer caches, secrets, virtual environments, build directories, or common local files. Do not scan ignored content merely to complete the card.
 
 ## Branch flow
 
@@ -239,6 +252,8 @@ git diff <base>...HEAD --stat
 git diff <base>...HEAD
 git log --oneline <base>..HEAD
 ```
+
+Re-list participating worktrees and compare them with the Work Boundary. A missing or newly participating worktree must be reconciled before review; evidence from a child worktree cannot prove the integrated state until that state is captured and verified.
 
 Then:
 

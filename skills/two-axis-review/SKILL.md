@@ -18,7 +18,7 @@ missing-outcome-reference: bootstrap-provisional
 authority-failure: stale-until-reconfirmed
 authority-failure-triggers: authority-inaccessible,authority-conflict,authority-revision-mismatch
 outcome-record: outcome-reference
-required-local-resources: references/smell-baseline.md
+required-local-resources: references/review-boundary.md,references/smell-baseline.md
 bootstrap-authority: provisional
 bootstrap-lifecycle: active
 bootstrap-currentness: fresh
@@ -59,7 +59,9 @@ Never describe an Outcome Revision as a hash or digest unless it was actually co
 ## Inputs
 
 - Outcome Reference: the exact `usable-loop/v1` record. Its locator may designate an issue, PRD, spec, conversation alignment snapshot, goal acceptance criteria, bug repro, or deployment objective.
+- Review target: `published-artifact`, `current-task-state`, or `artifact-plus-local`. Default to `current-task-state` when the user asks to review the work for the current task rather than naming a fixed published artifact.
 - Base revision: commit, branch, tag, PR base, worktree base, or `HEAD~N` used as one candidate-discovery anchor; it is not the complete Review Boundary.
+- Review Boundary Seed / Work Boundary: expected logical changes, task-start candidates, guardrails, declared ignored artifacts, and participating workspaces. Treat these as hypotheses to reconcile, not as an allowlist.
 - Standards source: repo docs, existing patterns, linters, type system, architecture decisions, and smell baseline. Use `references/smell-baseline.md` when deeper smell vocabulary is needed.
 - Evidence source: commands already run, test output, build output, smoke checks, logs, health/readback results.
 
@@ -77,13 +79,49 @@ Run these in parallel agents/sessions when available, then aggregate without mer
 
 ## Process
 
-1. **Confirm review boundary**
-   ```bash
-   git rev-parse <fixed-point>
-   git diff <fixed-point>...HEAD --stat
-   git diff <fixed-point>...HEAD
+1. **Confirm the Review Boundary**
+
+   For `published-artifact`, resolve the exact commit/patch/PR object and inventory its changes; report local drift when it prevents reproduction or verification, but do not silently add local work to that target. Read `references/review-boundary.md` for `current-task-state` or `artifact-plus-local`: inventory every participating worktree and every candidate layer—committed, staged, unstaged, untracked, and explicitly declared ignored artifacts. Inspect untracked metadata before content; never scan undeclared ignored files.
+
+   Classify every logical change unit as exactly one of: `include-required`, `include-scope-creep`, `include-inherited-dependency`, `exclude-proven-unrelated`, or `unresolved`. Split mixed files by hunks/sections/artifacts when their meanings differ. Task-created unexpected work is scope creep, never an exclusion. Pre-existing and omitted-from-plan are not proof of unrelatedness.
+
+   Emit and actually compute the confirmed boundary:
+
+   ```text
+   ## Review Boundary
+   Task ID:
+   Outcome Revision:
+   Review target: published-artifact | current-task-state | artifact-plus-local
+   Participating workspaces:
+   Candidate inventory:
+   Classifications:
+   Boundary digest:
+   Unresolved items:
+   Captured at:
    ```
-   If the diff is empty or the fixed point is wrong, stop and report that.
+
+   Prefer bundled `runtime/git_state.py` for read-only mechanical capture when available; retain the Git-command fallback in the reference for standalone use. The helper does not classify relevance. Block review approval if an item is unresolved or a participating worktree is missing.
+
+   Capture the matching token:
+
+   ```text
+   ## Code State Token
+   Provider: git
+   Repository identity:
+   Workspace identity:
+   Base revision:
+   Exact revision:
+   Recovery identity, if available:
+   Conflict state:
+   Review Boundary digest:
+   Candidate inventory:
+   Tracked-state fingerprint:
+   Included-untracked fingerprints:
+   Declared-ignored fingerprints:
+   Participating-worktree fingerprints:
+   Relevant environment:
+   Captured at:
+   ```
 
 2. **Review Outcome Fit**
    Ask: does this change satisfy the real task?
@@ -117,8 +155,19 @@ Run these in parallel agents/sessions when available, then aggregate without mer
    - What remains unverified and why.
    - Whether `verify-before-claim` should be run next.
 
-5. **Report separately**
+   Reject evidence bound to a different Outcome Revision, Boundary digest, relevant Code State Token, participating worktree set, or environment. Child-worktree evidence proves only that child state, not integration.
+
+5. **Recheck state and report separately**
+
+   Re-capture the Code State Token before recommending approval. If the Boundary digest or relevant state changed, reconcile the inventory and repeat affected review/evidence checks. A proven unrelated edit may preserve only the original narrow evidence after reconciliation; it cannot broaden a claim.
+
    ```markdown
+   ## Outcome Reference
+   <complete usable-loop/v1 record>
+
+   ## Review Boundary
+   <complete record and digest>
+
    ## Outcome Fit
    - Critical/Important/Minor findings
 
@@ -147,5 +196,6 @@ Run these in parallel agents/sessions when available, then aggregate without mer
 - Do not require a formal spec file. The outcome source may live in the current conversation.
 - Do not use tests passing as a proxy for outcome fit unless the tests encode the acceptance criteria.
 - Do not approve if verification evidence is absent for the main claim; use "Not enough evidence" instead.
+- Do not approve with unresolved candidates, a changed Boundary digest, a missing participating worktree, unauthorized task-created scope creep, or stale state-bound evidence.
 - Prefer actionable findings with file/path/hunk references where possible.
 - This skill reviews concrete code artifacts/diffs. Use or create a separate review skill for designs, plans, standalone patch files, or pre-implementation proposals.

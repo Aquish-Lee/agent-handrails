@@ -21,6 +21,9 @@
       "blocked",
       "stale"
     ],
+    "evidence_binding": [
+      "exact-state"
+    ],
     "ignored_artifact_declaration": [
       "explicit-only"
     ],
@@ -52,6 +55,14 @@
       "include-inherited-dependency",
       "exclude-proven-unrelated",
       "unresolved"
+    ],
+    "review_boundary_gate": [
+      "block-on-unresolved"
+    ],
+    "review_target": [
+      "published-artifact",
+      "current-task-state",
+      "artifact-plus-local"
     ],
     "revision_digest_claim": [
       "computed-only"
@@ -85,6 +96,9 @@
       "dependency",
       "generated",
       "verification"
+    ],
+    "vcs_provider": [
+      "git"
     ]
   },
   "policies": {
@@ -116,6 +130,26 @@
     "ignored-artifact-declaration": {
       "enum": "ignored_artifact_declaration",
       "default": "explicit-only"
+    },
+    "evidence-binding": {
+      "enum": "evidence_binding",
+      "default": "exact-state",
+      "invalidated_by": [
+        "outcome-revision-change",
+        "unreconciled-or-relevant-review-boundary-change",
+        "relevant-code-state-change",
+        "relevant-environment-change"
+      ],
+      "unrelated_change_recovery": "reconcile-boundary-and-preserve-original-claim-scope"
+    },
+    "review-boundary-gate": {
+      "enum": "review_boundary_gate",
+      "default": "block-on-unresolved",
+      "blockers": [
+        "unresolved-candidate",
+        "boundary-digest-changed",
+        "participating-worktree-missing"
+      ]
     },
     "revision-integrity": {
       "enum": "revision_digest_claim",
@@ -186,11 +220,13 @@
       ]
     },
     "claim-record": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "claim_id",
         "task_id",
         "outcome_revision",
+        "review_boundary_digest",
+        "code_state_token",
         "claim",
         "evidence_ids",
         "status",
@@ -198,6 +234,18 @@
         "stale_when"
       ],
       "optional_fields": [],
+      "markdown_labels": {
+        "claim_id": "Claim ID:",
+        "task_id": "Task ID:",
+        "outcome_revision": "Outcome Revision:",
+        "review_boundary_digest": "Review Boundary digest:",
+        "code_state_token": "Code State Token:",
+        "claim": "Claim:",
+        "evidence_ids": "Evidence IDs:",
+        "status": "Status:",
+        "scope_limit": "Scope limit:",
+        "stale_when": "Stale when:"
+      },
       "field_enums": {
         "status": "claim_status"
       },
@@ -206,7 +254,7 @@
       ]
     },
     "code-state-token": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "provider",
         "repository_identity",
@@ -215,8 +263,11 @@
         "exact_revision",
         "conflict_state",
         "review_boundary_digest",
+        "candidate_inventory",
         "tracked_state_fingerprint",
         "included_untracked_fingerprints",
+        "declared_ignored_fingerprints",
+        "participating_worktree_fingerprints",
         "relevant_environment",
         "captured_at"
       ],
@@ -224,6 +275,25 @@
         "task_change_identities",
         "recovery_identity"
       ],
+      "markdown_labels": {
+        "provider": "Provider:",
+        "repository_identity": "Repository identity:",
+        "workspace_identity": "Workspace identity:",
+        "base_revision": "Base revision:",
+        "exact_revision": "Exact revision:",
+        "conflict_state": "Conflict state:",
+        "review_boundary_digest": "Review Boundary digest:",
+        "candidate_inventory": "Candidate inventory:",
+        "tracked_state_fingerprint": "Tracked-state fingerprint:",
+        "included_untracked_fingerprints": "Included-untracked fingerprints:",
+        "declared_ignored_fingerprints": "Declared-ignored fingerprints:",
+        "participating_worktree_fingerprints": "Participating-worktree fingerprints:",
+        "relevant_environment": "Relevant environment:",
+        "captured_at": "Captured at:"
+      },
+      "field_enums": {
+        "provider": "vcs_provider"
+      },
       "producers": [
         "feedback-loop",
         "two-axis-review",
@@ -231,7 +301,7 @@
       ]
     },
     "evidence-record": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "evidence_id",
         "task_id",
@@ -246,6 +316,19 @@
         "captured_at"
       ],
       "optional_fields": [],
+      "markdown_labels": {
+        "evidence_id": "Evidence ID:",
+        "task_id": "Task ID:",
+        "outcome_revision": "Outcome Revision:",
+        "review_boundary_digest": "Review Boundary digest:",
+        "code_state_token": "Code State Token:",
+        "environment": "Environment:",
+        "check": "Check:",
+        "observed_result": "Observed result:",
+        "scope": "Scope:",
+        "freshness": "Freshness:",
+        "captured_at": "Captured at:"
+      },
       "field_enums": {
         "freshness": "outcome_freshness"
       },
@@ -372,10 +455,11 @@
       ]
     },
     "review-boundary": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "task_id",
         "outcome_revision",
+        "review_target",
         "participating_workspaces",
         "candidate_inventory",
         "classifications",
@@ -384,8 +468,20 @@
         "captured_at"
       ],
       "optional_fields": [],
+      "markdown_labels": {
+        "task_id": "Task ID:",
+        "outcome_revision": "Outcome Revision:",
+        "review_target": "Review target:",
+        "participating_workspaces": "Participating workspaces:",
+        "candidate_inventory": "Candidate inventory:",
+        "classifications": "Classifications:",
+        "boundary_digest": "Boundary digest:",
+        "unresolved_items": "Unresolved items:",
+        "captured_at": "Captured at:"
+      },
       "field_enums": {
-        "classifications": "review_classification"
+        "classifications": "review_classification",
+        "review_target": "review_target"
       },
       "producers": [
         "two-axis-review"
@@ -426,20 +522,38 @@
       ]
     },
     "work-boundary": {
-      "availability": "planned",
+      "availability": "active",
       "required_fields": [
         "task_id",
-        "workspace",
-        "allowed_scope",
-        "explicitly_out_of_scope",
+        "outcome_revision",
+        "workspace_identity",
+        "task_start_revision",
+        "task_start_candidates",
+        "participating_workspaces",
+        "expected_logical_changes",
         "authorization_guardrails",
-        "rollback_path"
+        "declared_ignored_artifacts",
+        "base_revision",
+        "rollback_path",
+        "stale_when"
       ],
       "optional_fields": [
-        "base_revision",
-        "branch",
-        "worktree"
+        "recovery_identity"
       ],
+      "markdown_labels": {
+        "task_id": "Task ID:",
+        "outcome_revision": "Outcome Revision:",
+        "workspace_identity": "Workspace identity:",
+        "task_start_revision": "Task-start revision:",
+        "task_start_candidates": "Task-start candidates:",
+        "participating_workspaces": "Participating workspaces:",
+        "expected_logical_changes": "Expected logical changes:",
+        "authorization_guardrails": "Authorization guardrails:",
+        "declared_ignored_artifacts": "Declared ignored artifacts:",
+        "base_revision": "Base revision:",
+        "rollback_path": "Rollback path:",
+        "stale_when": "Stale when:"
+      },
       "producers": [
         "branch-sandbox"
       ]
@@ -452,31 +566,29 @@
         "outcome-reference"
       ],
       "produces": [
-        "outcome-reference"
-      ],
-      "planned_consumes": [],
-      "planned_produces": [
+        "outcome-reference",
         "work-boundary"
       ],
+      "planned_consumes": [],
+      "planned_produces": [],
       "missing_outcome_reference": "bootstrap-provisional",
       "authority_failure": "stale-until-reconfirmed"
     },
     "feedback-loop": {
       "role": "evidence-builder",
       "consumes": [
-        "outcome-reference"
-      ],
-      "produces": [
-        "outcome-reference"
-      ],
-      "planned_consumes": [
+        "outcome-reference",
         "review-boundary-seed",
         "work-boundary"
       ],
-      "planned_produces": [
-        "checkpoint",
+      "produces": [
+        "outcome-reference",
         "code-state-token",
         "evidence-record"
+      ],
+      "planned_consumes": [],
+      "planned_produces": [
+        "checkpoint"
       ],
       "missing_outcome_reference": "bootstrap-provisional",
       "authority_failure": "stale-until-reconfirmed"
@@ -530,41 +642,37 @@
     "two-axis-review": {
       "role": "boundary-reviewer",
       "consumes": [
-        "outcome-reference"
-      ],
-      "produces": [
-        "outcome-reference"
-      ],
-      "planned_consumes": [
+        "outcome-reference",
         "review-boundary-seed",
         "work-boundary",
         "code-state-token",
         "evidence-record"
       ],
-      "planned_produces": [
+      "produces": [
+        "outcome-reference",
         "code-state-token",
         "review-boundary"
       ],
+      "planned_consumes": [],
+      "planned_produces": [],
       "missing_outcome_reference": "bootstrap-provisional",
       "authority_failure": "stale-until-reconfirmed"
     },
     "verify-before-claim": {
       "role": "claim-gate",
       "consumes": [
-        "outcome-reference"
-      ],
-      "produces": [
-        "outcome-reference"
-      ],
-      "planned_consumes": [
+        "outcome-reference",
         "review-boundary",
         "code-state-token",
         "evidence-record"
       ],
-      "planned_produces": [
+      "produces": [
+        "outcome-reference",
         "code-state-token",
         "claim-record"
       ],
+      "planned_consumes": [],
+      "planned_produces": [],
       "missing_outcome_reference": "bootstrap-provisional",
       "authority_failure": "stale-until-reconfirmed"
     }

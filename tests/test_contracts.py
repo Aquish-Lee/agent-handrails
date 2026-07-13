@@ -82,7 +82,7 @@ class UsableLoopContractTests(unittest.TestCase):
         self.assertEqual(paths["no-spec"]["consumer"], "plan-lite")
         self.assertEqual(paths["with-spec"]["consumer"], "plan-lite")
 
-    def test_task1_activates_only_records_projected_by_current_skills(self) -> None:
+    def test_task2_activates_only_records_projected_by_current_skills(self) -> None:
         records = load_contract()["records"]
         active = {
             name
@@ -97,8 +97,114 @@ class UsableLoopContractTests(unittest.TestCase):
                 "outcome-contract",
                 "implementation-plan",
                 "review-boundary-seed",
+                "work-boundary",
+                "code-state-token",
+                "evidence-record",
+                "review-boundary",
+                "claim-record",
             },
         )
+        self.assertEqual(records["checkpoint"]["availability"], "planned")
+
+    def test_task2_record_ownership_matches_the_review_and_evidence_flow(self) -> None:
+        skills = load_contract()["skills"]
+        self.assertIn("work-boundary", skills["branch-sandbox"]["produces"])
+        self.assertEqual(skills["feedback-loop"]["planned_produces"], ["checkpoint"])
+        self.assertTrue(
+            {"code-state-token", "evidence-record"}.issubset(
+                skills["feedback-loop"]["produces"]
+            )
+        )
+        self.assertTrue(
+            {"review-boundary-seed", "work-boundary"}.issubset(
+                skills["two-axis-review"]["consumes"]
+            )
+        )
+        self.assertTrue(
+            {"review-boundary", "code-state-token"}.issubset(
+                skills["two-axis-review"]["produces"]
+            )
+        )
+        self.assertTrue(
+            {"review-boundary", "code-state-token", "evidence-record"}.issubset(
+                skills["verify-before-claim"]["consumes"]
+            )
+        )
+        self.assertIn("claim-record", skills["verify-before-claim"]["produces"])
+
+    def test_task2_machine_contract_blocks_ambiguous_or_stale_approval(self) -> None:
+        contract = load_contract()
+        self.assertEqual(
+            set(contract["enums"]["review_target"]),
+            {"published-artifact", "current-task-state", "artifact-plus-local"},
+        )
+        boundary_gate = contract["policies"]["review-boundary-gate"]
+        self.assertEqual(boundary_gate["default"], "block-on-unresolved")
+        self.assertEqual(
+            set(boundary_gate["blockers"]),
+            {
+                "unresolved-candidate",
+                "boundary-digest-changed",
+                "participating-worktree-missing",
+            },
+        )
+        evidence_binding = contract["policies"]["evidence-binding"]
+        self.assertEqual(evidence_binding["default"], "exact-state")
+        self.assertEqual(
+            set(evidence_binding["invalidated_by"]),
+            {
+                "outcome-revision-change",
+                "unreconciled-or-relevant-review-boundary-change",
+                "relevant-code-state-change",
+                "relevant-environment-change",
+            },
+        )
+
+    def test_task2_active_records_bind_state_boundary_evidence_and_claims(self) -> None:
+        records = load_contract()["records"]
+        expectations = {
+            "work-boundary": {
+                "task_start_revision",
+                "task_start_candidates",
+                "participating_workspaces",
+                "authorization_guardrails",
+                "declared_ignored_artifacts",
+            },
+            "code-state-token": {
+                "review_boundary_digest",
+                "candidate_inventory",
+                "tracked_state_fingerprint",
+                "included_untracked_fingerprints",
+                "declared_ignored_fingerprints",
+                "participating_worktree_fingerprints",
+            },
+            "review-boundary": {
+                "review_target",
+                "candidate_inventory",
+                "classifications",
+                "boundary_digest",
+                "unresolved_items",
+            },
+            "evidence-record": {
+                "outcome_revision",
+                "review_boundary_digest",
+                "code_state_token",
+                "freshness",
+            },
+            "claim-record": {
+                "outcome_revision",
+                "review_boundary_digest",
+                "code_state_token",
+                "evidence_ids",
+                "status",
+            },
+        }
+        for record_name, required_fields in expectations.items():
+            with self.subTest(record=record_name):
+                self.assertEqual(records[record_name]["availability"], "active")
+                self.assertTrue(
+                    required_fields.issubset(records[record_name]["required_fields"])
+                )
 
     def test_every_handrail_can_bootstrap_a_provisional_reference(self) -> None:
         contract = load_contract()
@@ -330,6 +436,29 @@ class UsableLoopContractTests(unittest.TestCase):
             "Open boundary questions:",
         ):
             self.assertIn(label, text)
+
+    def test_review_boundary_reference_projects_machine_enums_and_layers(self) -> None:
+        contract = load_contract()
+        text = (
+            PROJECT_ROOT
+            / "skills"
+            / "two-axis-review"
+            / "references"
+            / "review-boundary.md"
+        ).read_text(encoding="utf-8")
+        for value in (
+            *contract["enums"]["review_target"],
+            *contract["enums"]["review_classification"],
+            "committed",
+            "staged",
+            "unstaged",
+            "untracked",
+            "declared-ignored",
+        ):
+            with self.subTest(value=value):
+                self.assertIn(f"`{value}`", text)
+        self.assertIn("Do not run a blanket ignored-file scan", text)
+        self.assertIn("Avoid a digest cycle", text)
 
 
 if __name__ == "__main__":

@@ -141,11 +141,33 @@ def update_digest_record(digest: DigestWriter, *parts: bytes) -> None:
         digest.update(part)
 
 
-def tree_digest(root: Path) -> str:
+def is_generated_python_artifact(root: Path, path: Path) -> bool:
+    relative = path.relative_to(root)
+    return "__pycache__" in relative.parts or path.suffix in {".pyc", ".pyo"}
+
+
+def ignore_generated_python_artifacts(
+    _directory: str,
+    names: list[str],
+) -> set[str]:
+    return {
+        name
+        for name in names
+        if name == "__pycache__" or Path(name).suffix in {".pyc", ".pyo"}
+    }
+
+
+def tree_digest(
+    root: Path,
+    *,
+    ignore_generated_python: bool = False,
+) -> str:
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"cannot digest missing or non-directory tree: {root}")
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        if ignore_generated_python and is_generated_python_artifact(root, path):
+            continue
         relative = path.relative_to(root).as_posix().encode()
         executable = str(path.lstat().st_mode & 0o111).encode()
         if path.is_symlink():
@@ -242,10 +264,14 @@ def bundle_spec(
     runtime_root: Path | None = None,
 ) -> BundleSpec:
     skill_digests = {
-        name: tree_digest(skill_roots[name]) for name in sorted(skill_roots)
+        name: tree_digest(
+            skill_roots[name],
+            ignore_generated_python=True,
+        )
+        for name in sorted(skill_roots)
     }
     runtime_digest = (
-        tree_digest(runtime_root)
+        tree_digest(runtime_root, ignore_generated_python=True)
         if runtime_root is not None and runtime_root.is_dir()
         else None
     )
@@ -381,10 +407,16 @@ def create_bundle_tree(
             skill_roots[name],
             skills_destination / name,
             symlinks=True,
+            ignore=ignore_generated_python_artifacts,
         )
     runtime_destination = destination / "runtime"
     if runtime_root is not None and runtime_root.is_dir():
-        shutil.copytree(runtime_root, runtime_destination, symlinks=True)
+        shutil.copytree(
+            runtime_root,
+            runtime_destination,
+            symlinks=True,
+            ignore=ignore_generated_python_artifacts,
+        )
     else:
         runtime_destination.mkdir()
     (destination / "manifest.json").write_text(
@@ -1496,7 +1528,11 @@ def compare(source: Path, target: Path) -> str:
         return "missing"
     if target.is_symlink() or not target.is_dir():
         return "unmanaged-path-type"
-    return "up-to-date" if tree_digest(source) == tree_digest(target) else "different"
+    return (
+        "up-to-date"
+        if tree_digest(source, ignore_generated_python=True) == tree_digest(target)
+        else "different"
+    )
 
 
 def main() -> int:

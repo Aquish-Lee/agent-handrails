@@ -70,6 +70,42 @@ Never describe an Outcome Revision as a hash or digest unless it was actually co
 - Do not use old evidence unless it is explicitly still fresh and relevant; when in doubt, rerun or downgrade the claim.
 - Do not use tests passing as proof of outcome unless the tests/checks encode the relevant acceptance criteria.
 
+## State-bound claim gate
+
+When a claim depends on repository state, require a confirmed Review Boundary and capture the Git Code State Token three times: immediately before verification, immediately after verification, and immediately before the final claim. Prefer the bundled read-only `runtime/git_state.py` when available; a standalone skill may capture the same fields with read-only Git commands. The helper never classifies task relevance.
+
+```text
+## Code State Token
+Provider: git
+Repository identity:
+Workspace identity:
+Base revision:
+Exact revision:
+Recovery identity, if available:
+Conflict state:
+Review Boundary digest:
+Candidate inventory:
+Tracked-state fingerprint:
+Included-untracked fingerprints:
+Declared-ignored fingerprints:
+Participating-worktree fingerprints:
+Relevant environment:
+Captured at:
+```
+
+Block a supported claim when any of these apply:
+
+- the Outcome Revision differs from the reviewed or verified revision;
+- the Review Boundary contains `unresolved` candidates;
+- its digest changed or any participating worktree is missing;
+- relevant Code State Token fields changed across the three captures;
+- the verification environment differs in a claim-relevant way;
+- evidence came from a child worktree but the claim concerns an integrated state.
+
+A proven unrelated edit is not an automatic pass. Reconcile it into a new candidate inventory and Boundary digest; then retain only evidence whose original narrow scope is mechanically unchanged. Never use reconciliation to broaden the old claim.
+
+For a non-repository operational claim, state `Code State Token: not applicable — claim does not depend on repository state` and bind the claim to the exact environment/readback evidence instead. Do not use this exception for code completion, review, integration, build, or deployment-artifact claims.
+
 ## Claim-shaped calibration, not rigid levels
 
 Choose evidence by the shape of the claim. These are calibration aids, not gates.
@@ -207,6 +243,13 @@ Useful evidence:
 - Environment:
 - Freshness requirement:
 
+## State binding
+- Review Boundary digest:
+- Code State Token before verification:
+- Code State Token after verification:
+- Code State Token before claim:
+- Participating workspaces reconciled:
+
 ## Evidence plan
 | Claim part | Check / command | Expected evidence | Scope limit |
 | --- | --- | --- | --- |
@@ -227,6 +270,18 @@ Useful evidence:
 
 ## Result
 Verified | Partially verified | Not verified | Verification failed
+
+## Claim Record
+- Claim ID:
+- Task ID:
+- Outcome Revision:
+- Review Boundary digest:
+- Code State Token:
+- Claim:
+- Evidence IDs:
+- Status: supported | unsupported | blocked | stale
+- Scope limit:
+- Stale when:
 
 ## Remaining risk / next step
 - ...

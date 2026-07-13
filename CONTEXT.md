@@ -53,7 +53,7 @@ A state in which a record can no longer be shown to match its dependencies. Stal
 
 ### Work Boundary
 
-The authorization and isolation boundary: repository/workspace, permitted scope, forbidden scope, guardrails, and rollback path. It does not decide which current changes must be reviewed.
+The authorization and isolation boundary: task-start revision/candidates, participating workspaces, expected logical changes, guardrails, explicitly declared ignored artifacts, and rollback path. Expected changes are hypotheses, not a review allowlist.
 
 ### Logical Change Unit
 

@@ -62,6 +62,18 @@ All seven handrails use `usable-loop/v1`. A stable Task ID and exact Outcome Ref
 
 See `CONTEXT.md` for domain vocabulary and `docs/contracts/usable-loop-v1.md` for canonical semantics.
 
+## Review the real current task state
+
+A fixed commit range is useful but incomplete when task work is staged, unstaged, untracked, explicitly ignored, or spread across worktrees.
+
+- `plan-lite` produces a Review Boundary Seed: expectations and guardrails, not an allowlist.
+- `branch-sandbox` captures the task-start Work Boundary and participating workspaces.
+- `runtime/git_state.py` can capture read-only mechanical Git inventories and fingerprints; it never classifies task relevance.
+- `two-axis-review` reconciles every candidate into a confirmed Review Boundary and computes its digest.
+- `feedback-loop` and `verify-before-claim` bind evidence and claims to that digest, the exact Outcome Revision, relevant environment, and Code State Token.
+
+For current-state review, account for committed, staged, unstaged, untracked, explicitly declared ignored artifacts, and all participating worktrees. Do not scan undeclared ignored files. Treat task-created unexpected changes as scope creep, and block approval while any candidate is unresolved or the boundary/state changed after evidence capture.
+
 ## Task shapes, not rigid levels
 
 Software engineering work is open-ended. These shapes are a shared vocabulary for choosing how much process is useful, not a classifier that restricts the agent.

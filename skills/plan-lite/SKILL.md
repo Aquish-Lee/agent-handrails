@@ -134,6 +134,8 @@ The seed is a planning hypothesis, not an allowlist or final Review Boundary. Om
 
 List ignored artifacts only when the user, Outcome Source, or task record explicitly declares them. Do not infer common cache, secret, virtual-environment, or generated paths as declarations.
 
+Under `Base and recovery hints`, name the intended task-start revision and ask `branch-sandbox` or the implementer to capture the actual dirty candidates before editing. Under `Participating workspaces`, include every known implementation, dependency, generation, verification, and integration worktree; mark unknown future participants as an open boundary question rather than silently omitting them.
+
 ## Implementation strategy
 <short explanation of chosen approach and why it is the smallest professional path>
 

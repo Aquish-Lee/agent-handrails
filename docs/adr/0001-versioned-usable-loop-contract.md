@@ -26,6 +26,7 @@ The review model also relied on fixed commit ranges, which cannot describe stage
 8. Keep public names VCS-neutral. The first implementation supports Git; Jujutsu may become an optional provider after the v0.1 loop is proven.
 9. Do not add an eighth gateway/state/checkpoint skill, a mandatory workflow, or an orchestrator in this release.
 10. Require independently deployed skills to remain useful without reading repository-level contract or documentation files.
+11. Put deterministic Git capture in one read-only standard-library helper. It inventories and fingerprints state but leaves task relevance and classifications to `two-axis-review`; standalone skills retain Git-command fallbacks.
 
 ## Consequences
 

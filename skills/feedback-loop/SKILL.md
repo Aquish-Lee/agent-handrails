@@ -139,6 +139,54 @@ Function-level evidence is only enough when the acceptance criterion is truly fu
    - Then related tests/build/typecheck/smoke when the change crosses module, service, UI, data, or deployment boundaries.
    - Verify acceptance criteria, not just test pass/fail.
 
+## Bind evidence to current state
+
+For repository-dependent evidence, capture a Code State Token immediately before the check and again immediately after it. Prefer the bundled read-only `runtime/git_state.py` when available; otherwise capture the equivalent Git facts with `rev-parse`, staged/unstaged diffs, `ls-files --others --exclude-standard`, explicit ignored paths, and `worktree list`. The helper inventories and fingerprints; it never decides which candidates belong to the task.
+
+Use the confirmed Review Boundary digest. If only a Review Boundary Seed exists—or direct entry has no boundary record—use `unconfirmed` and mark the evidence `unknown`; such evidence can guide development but cannot support approval or a completion claim until `two-axis-review` confirms the inventory.
+
+```text
+## Code State Token
+Provider: git
+Repository identity:
+Workspace identity:
+Base revision:
+Exact revision:
+Recovery identity, if available:
+Conflict state:
+Review Boundary digest:
+Candidate inventory:
+Tracked-state fingerprint:
+Included-untracked fingerprints:
+Declared-ignored fingerprints:
+Participating-worktree fingerprints:
+Relevant environment:
+Captured at:
+```
+
+Do not scan ignored files. Fingerprint an ignored artifact only through an explicit task declaration. Include task-related untracked content explicitly; a filename-only inventory does not bind its bytes.
+
+After each meaningful check, emit an Evidence Record:
+
+```text
+## Evidence Record
+Evidence ID:
+Task ID:
+Outcome Revision:
+Review Boundary digest:
+Code State Token:
+Environment:
+Check:
+Observed result:
+Scope:
+Freshness: fresh | unknown | stale
+Captured at:
+```
+
+Evidence is `fresh` only when the before/after token's relevant fields match, the Outcome Revision is unchanged, the Review Boundary digest is confirmed and unchanged, and the relevant environment matches. A relevant mismatch makes it `stale`; do not silently rerun a different check or widen its scope. A proven unrelated edit may preserve only the original narrow evidence after the candidate inventory is reconciled and re-digested.
+
+Evidence captured in a child worktree supports only that worktree state. It does not support an integration claim until the integrated workspace receives its own capture and verification.
+
 ## Good evidence checklist
 
 - Names behavior in domain language.

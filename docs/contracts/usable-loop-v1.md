@@ -128,7 +128,37 @@ The seed is a hypothesis, not an allowlist.
 - Only a complete current-state inventory may become the Review Boundary.
 - Only the confirmed Review Boundary receives a Boundary Digest.
 
-When the planned review records are activated, the candidate inventory will cover committed, staged, unstaged, untracked, explicitly declared ignored artifacts, and every participating workspace/worktree. Each candidate will be classified as `include-required`, `include-scope-creep`, `include-inherited-dependency`, `exclude-proven-unrelated`, or `unresolved`. Any unresolved item blocks approval and bound success claims.
+## Work Boundary and current-state inventory
+
+`branch-sandbox` records the task-start revision, current candidates, participating workspaces, expected logical changes, authorization guardrails, explicit ignored declarations, base/recovery identity, rollback path, and invalidation conditions. Expected paths constrain authorization but do not close review scope.
+
+The active current-state inventory covers committed, staged, unstaged, untracked, explicitly declared ignored artifacts, and every participating workspace/worktree. Untracked metadata is inspected before content. Undeclared ignored paths are neither enumerated nor read.
+
+The bundled `runtime/git_state.py` captures the mechanical Git facts, raw candidate layers, and content fingerprints. It is pure standard-library, read-only, and Git-first. It never decides task relevance. A copied skill retains read-only Git-command fallbacks so the runtime helper is not an external deployment dependency.
+
+## Review Boundary
+
+`two-axis-review` chooses one target: `published-artifact`, `current-task-state`, or `artifact-plus-local`. For the latter two, every mechanical candidate maps to a logical change unit classified as:
+
+- `include-required`;
+- `include-scope-creep`;
+- `include-inherited-dependency`;
+- `exclude-proven-unrelated`; or
+- `unresolved`.
+
+Mixed files are split by meaningful hunks/sections/artifacts when classifications differ. Pre-existing, uncommitted, or omitted-from-plan state is not automatically unrelated. Unexpected work caused by the task is scope creep and remains reviewable.
+
+The Boundary Digest is SHA-256 over documented canonical UTF-8 JSON containing outcome revision, review target, participating workspace identities, logical-unit mapping, classifications, artifact fingerprints, unresolved IDs, and relevant mechanical Code State Token fields. The token's `review_boundary_digest`, `captured_at`, and presentation prose are excluded to avoid a digest cycle. Capture mechanics with an unconfirmed boundary, compute the semantic digest, then capture/emit the final token; changed mechanics force another reconciliation. A value may be called a digest only when those canonical bytes were actually hashed.
+
+Any unresolved candidate, changed Boundary Digest, missing participating worktree, or unauthorized scope creep blocks approval and bound success claims.
+
+## Code State Token, Evidence Record, and Claim Record
+
+The active Git Code State Token captures repository/workspace identity, base and exact revisions, recovery identity, conflict state, the confirmed Boundary Digest, candidate inventory, tracked fingerprint, included-untracked and declared-ignored fingerprints, participating-worktree fingerprints, relevant environment, and capture time.
+
+`feedback-loop` captures the token immediately before and after a repository-dependent check and binds the observed result to Outcome Revision, Boundary Digest, token, environment, time, and narrow scope. Evidence stays `unknown` while its boundary is unconfirmed.
+
+`verify-before-claim` captures again immediately before the final claim. A supported Claim Record names its evidence IDs and cannot exceed their narrow scope. Child-worktree evidence supports only that child state until the integrated state is captured and verified.
 
 ## Planned Checkpoint and current Local Capsule policy
 
@@ -151,30 +181,30 @@ A Local Capsule never becomes an Outcome Source, confirms authority, supersedes 
 
 ## Producer and consumer ownership
 
-| Skill | Active inputs/outputs in Task 1 | Planned role-owned records |
+| Skill | Active inputs/outputs through Task 2 | Planned role-owned records |
 | --- | --- | --- |
 | `grill` | request/Outcome Reference → Alignment Snapshot and exact Outcome Reference | — |
 | `spec-lite` | Outcome Reference/Alignment Snapshot → Outcome Contract and exact Outcome Reference | — |
 | `plan-lite` | Outcome Reference/Alignment Snapshot/Outcome Contract → Implementation Plan and Review Boundary Seed | — |
-| `branch-sandbox` | consume/echo or bootstrap Outcome Reference | Work Boundary and recovery identity |
-| `feedback-loop` | consume/echo or bootstrap Outcome Reference | Checkpoint, Code State Token, and Evidence Records |
-| `two-axis-review` | consume/echo or bootstrap Outcome Reference | Review Boundary, Boundary Digest, Code State Token, and findings |
-| `verify-before-claim` | consume/echo or bootstrap Outcome Reference | Code State Token and scoped Claim Records |
+| `branch-sandbox` | Outcome Reference → Work Boundary and recovery identity | — |
+| `feedback-loop` | Outcome Reference/seed/work boundary → Code State Token and Evidence Records | Checkpoint |
+| `two-axis-review` | Outcome/boundary/state/evidence inputs → Review Boundary, Boundary Digest, Code State Token, and findings | — |
+| `verify-before-claim` | Outcome/boundary/state/evidence inputs → Code State Token and scoped Claim Records | — |
 
 Any skill may bootstrap the common provisional Outcome Reference. Only the role owner produces its specialized record: for example, `plan-lite` produces a Review Boundary Seed, never the final Review Boundary.
 
-In the Task 1 slice, Outcome Reference, Alignment Snapshot, Outcome Contract, Implementation Plan, and Review Boundary Seed are active. Work Boundary, Checkpoint, Code State Token, Evidence Record, Review Boundary, and Claim Record remain planned until their owning slices add complete skill-local behavior and tests.
+Outcome Reference, Alignment Snapshot, Outcome Contract, Implementation Plan, Review Boundary Seed, Work Boundary, Code State Token, Evidence Record, Review Boundary, and Claim Record are active. Only Checkpoint remains planned for the next slice.
 
-## Invalidation, including planned records
+## Invalidation
 
 | Change | Required effect |
 | --- | --- |
 | Outcome Revision changes | dependent plan, boundary seed, evidence, and claims become stale |
 | Authority is inaccessible or conflicting | current reference becomes provisional/stale; dependent claims become stale |
-| Review Boundary or Boundary Digest changes | review recommendation and bound claims become stale |
+| Review Boundary or Boundary Digest changes | review recommendation and bound claims become stale; scoped evidence survives only after proven-unrelated reconciliation |
 | Relevant Code State Token fields change | affected evidence becomes stale |
 | A proven unrelated state change occurs | reconcile the inventory; do not broaden the old claim |
 | Relevant environment changes | affected evidence becomes stale |
 | Local Capsule differs from authority | Capsule becomes stale; authority is unchanged |
 
-These rules define the v1 behavior as planned records become active; they do not claim that Task 1 skill projections already emit those records. Evidence never transfers automatically to a superseding Outcome Revision. Reuse requires explicit semantic reconciliation, current boundary/state capture, and evidence whose scope still proves the claim.
+Evidence never transfers automatically to a superseding Outcome Revision. A proven unrelated edit may preserve only the original narrow evidence after inventory reconciliation and Boundary re-digest; the old Evidence Record keeps its original digest and the new claim records the reconciliation. This cannot broaden the claim. Reuse requires current boundary/state capture and evidence whose scope still proves the claim.
