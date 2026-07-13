@@ -674,6 +674,11 @@ def _add_capture_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--declare-ignored", action="append", type=Path, default=[])
     parser.add_argument("--participating-worktree", action="append", type=Path, default=[])
     parser.add_argument("--environment", action="append", default=[])
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="emit the minimal runtime projection needed by a direct skill call",
+    )
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -689,6 +694,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     confirm_parser.add_argument("--classifications", required=True)
     capture_parser = commands.add_parser("capture", help="recapture a confirmed boundary")
     capture_parser.add_argument("--boundary", type=Path, required=True)
+    capture_parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="emit only current digest and state-token fields",
+    )
     return parser.parse_args(argv)
 
 
@@ -703,6 +713,81 @@ def _read_json(path: str | Path) -> dict[str, object]:
     if not isinstance(value, dict):
         raise BoundaryError(f"JSON from {path} must be an object")
     return value
+
+
+def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
+    logical_units: list[dict[str, object]] = []
+    for candidate_value in result["candidates"]:
+        candidate = dict(candidate_value)
+        shared = {
+            "candidate_id": candidate["candidate_id"],
+            "candidate_fingerprint": candidate["fingerprint"],
+            "workspace": candidate["workspace"],
+            "layer": candidate["layer"],
+            "path": candidate["path"],
+            "kind": candidate["kind"],
+        }
+        hunks = list(candidate.get("hunks", []))
+        if hunks:
+            for hunk_value in hunks:
+                hunk = dict(hunk_value)
+                logical_units.append(
+                    {
+                        **shared,
+                        "target_id": hunk["hunk_id"],
+                        "target_fingerprint": hunk["fingerprint"],
+                        "hunk_ordinal": hunk["ordinal"],
+                        "hunk_header": hunk["header"],
+                    }
+                )
+        else:
+            logical_units.append(
+                {
+                    **shared,
+                    "target_id": candidate["candidate_id"],
+                    "target_fingerprint": candidate["fingerprint"],
+                }
+            )
+    workspaces = [
+        {
+            "path": workspace["path"],
+            "exact_revision": workspace["exact_revision"],
+            "conflict_paths": workspace["conflict_paths"],
+        }
+        for workspace in result["workspaces"]
+    ]
+    return {
+        "contract": result["contract"],
+        "record": result["record"],
+        "inventory_digest": result["inventory_digest"],
+        "base_revision": result["base_revision"],
+        "workspaces": workspaces,
+        "logical_units": logical_units,
+        "captured_at": result["captured_at"],
+    }
+
+
+def _compact_boundary(result: Mapping[str, object]) -> dict[str, object]:
+    token = result["code_state_token"]
+    return {
+        "contract": result["contract"],
+        "record": result["record"],
+        "boundary_digest": result["boundary_digest"],
+        "code_state_token": token["token_digest"],
+        "inventory_digest": token["inventory_digest"],
+        "confirmed_at": result["confirmed_at"],
+    }
+
+
+def _compact_token(result: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "contract": result["contract"],
+        "record": result["record"],
+        "boundary_digest": result["boundary_digest"],
+        "code_state_token": result["token_digest"],
+        "inventory_digest": result["inventory_digest"],
+        "captured_at": result["captured_at"],
+    }
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -731,6 +816,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     except BoundaryError as error:
         print(f"handrails-state: {error}", file=sys.stderr)
         return 2
+    if arguments.compact:
+        if arguments.command == "inventory":
+            result = _compact_inventory(result)
+        elif arguments.command == "confirm":
+            result = _compact_boundary(result)
+        else:
+            result = _compact_token(result)
     json.dump(result, sys.stdout, ensure_ascii=True, sort_keys=True, indent=2)
     sys.stdout.write("\n")
     return 0

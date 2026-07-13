@@ -342,6 +342,61 @@ class BoundaryCliTests(HandrailsStateFixture):
         self.assertIn("capture", completed.stdout)
         self.assertNotIn("review-boundary-digest", completed.stdout)
 
+    def test_compact_cli_projection_keeps_ids_and_digests_without_canonical_payload(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        write(self.repository / "note.tmp", "local\n")
+        inventory_completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "inventory",
+                "--compact",
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        inventory = json.loads(inventory_completed.stdout)
+        self.assertNotIn("canonical_payload", inventory)
+        self.assertNotIn("capture_spec", inventory)
+        self.assertEqual(len(inventory["logical_units"]), 2)
+        self.assertTrue(all(unit["target_id"] for unit in inventory["logical_units"]))
+
+        inventory_git_state = self.runtime.inventory_git_state(
+            repository=self.repository,
+            base="HEAD",
+        )
+        classifications = self.complete_classifications(inventory_git_state)
+        confirm_completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            input=json.dumps(classifications),
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        boundary = json.loads(confirm_completed.stdout)
+        self.assertNotIn("canonical_payload", boundary)
+        self.assertEqual(boundary["inventory_digest"], inventory_git_state["inventory_digest"])
+        self.assertTrue(boundary["boundary_digest"].startswith("sha256:"))
+        self.assertTrue(boundary["code_state_token"].startswith("sha256:"))
+
 
 if __name__ == "__main__":
     unittest.main()

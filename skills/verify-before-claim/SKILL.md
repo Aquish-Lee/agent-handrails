@@ -15,11 +15,11 @@ reference: references/usable-loop-v2.md
 runtime: scripts/handrails_state.py
 -->
 
-The `fact` route below is self-contained. For a fact, do **not** load the local
-reference or state runtime unless the user explicitly requests a full record
-schema. For `scoped-task` or `high-assurance`, read
-[the local v2 contract](references/usable-loop-v2.md) for full Claim Evidence,
-Boundary, Review, and Claim Record fields.
+The `fact` and `scoped-task` routes below are self-contained. For either route,
+do **not** load the local reference, inspect runtime source, or call runtime
+`--help` unless execution fails or the user explicitly requests a full record
+schema. For `high-assurance`, read [the local v2 contract](references/usable-loop-v2.md)
+for the full Review and Claim Record fields.
 
 ## Route by claim width
 
@@ -45,14 +45,39 @@ Claim Boundary:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py inventory \
-  --repository . --base <task-base> [...]
+  --compact --repository . --base <task-base> [...]
 python <this-skill-dir>/scripts/handrails_state.py confirm \
-  --kind claim --classifications <file|-> \
+  --compact --kind claim --classifications <file|-> \
   --repository . --base <task-base> [...same capture arguments...]
 ```
 
 Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
 In this source repository, use `runtime/handrails_state.py`.
+
+Pass this exact classification shape, preferably through stdin so verification
+does not leave a task artifact:
+
+```json
+{
+  "task_id": "stable task ID",
+  "outcome_revision": "r1",
+  "inventory_digest": "runtime inventory digest",
+  "logical_units": [
+    {
+      "target_id": "runtime candidate or hunk ID",
+      "classification": "include-claim | exclude-proven-unrelated",
+      "rationale": "task-specific reason",
+      "authorization": "authorized | not-applicable"
+    }
+  ]
+}
+```
+
+Every compact inventory `logical_units[].target_id` must appear exactly once.
+Included units require `authorized`; excluded proven-unrelated units require
+`not-applicable`. Do not invent IDs or a digest. After the narrow checks, run
+the same compact inventory once more and require the Inventory Digest to match;
+otherwise mark evidence stale and block the claim.
 
 Run the narrow checks against that exact state. The Claim Record carries
 `claim_boundary_digest` and no Review ID.
