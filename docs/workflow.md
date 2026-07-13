@@ -88,9 +88,11 @@ Delete the Capsule only after integration or a clean durable handoff and after a
 
 ## Release acceptance
 
-Treat a clean GitHub Actions checkout as the release packaging boundary. On Python 3.10 and the current stable matrix version, install PyYAML, run the full tests and repository validator, smoke the Git state helper, then apply/check a complete temporary bundle with discovery links. The release candidate must leave tracked source clean.
+Treat a clean, reproducible checkout as the release packaging boundary. For an alpha candidate, install PyYAML, run the full tests and repository validator, smoke the Git state helper, then apply/check a complete temporary bundle with discovery links. The candidate must leave tracked source clean. Repeat the acceptance from a fresh local clone when the release changes packaging or deployment behavior.
 
-Before a stable tag, repeat those checks from a fresh clone, exercise rollback with the exact bundle-aware baseline, and run the real Codex/dogfood gates. Local green tests do not substitute for unpublished CI, real installation, or external-project evidence.
+GitHub Actions repeats this acceptance on Python 3.10 and the current stable matrix version when hosted runners are available. It is an advisory independent-environment signal for alpha releases, not a publication prerequisite. A hosted result cannot replace the required local acceptance, real Codex installation, or dogfood evidence.
+
+Before a stable tag, exercise rollback with the exact bundle-aware baseline, run the real Codex five-scenario dogfood gate, and complete one genuinely external-project loop.
 
 ## Task shapes, not rigid levels
 

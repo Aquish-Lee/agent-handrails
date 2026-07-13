@@ -111,7 +111,7 @@ $verify-before-claim Verify the exact completion claim against current state.
 
 In Codex CLI/IDE, run `/skills` or type `$` to select a skill. Codex also supports `$skill-name` mentions in prompts. Agent Handrails disables implicit matching, so these explicit mentions remain the intended path. See the official [Build skills](https://learn.chatgpt.com/docs/build-skills) documentation.
 
-The `$` invocation syntax is documented by Codex, and temporary discovery links are covered locally. Discovery and invocation against the author's real installed alpha bundle are not yet verified; Task 5 keeps that as a release gate rather than presenting it as completed evidence.
+The `$` invocation syntax is documented by Codex, and temporary discovery links are covered locally. Discovery and invocation against the author's real installed alpha bundle are still required as direct release evidence; hosted CI is supplementary and cannot substitute for that check.
 
 ## Project source and managed deployment
 
@@ -175,9 +175,10 @@ Managed entrypoints and bundle contents are deployment artifacts, not a second d
 
 - Required runtime: Linux and Python 3.10+.
 - Locally exercised in this development environment: Linux with Python 3.14; Python 3.10 syntax compatibility is checked mechanically.
-- CI matrix: Python 3.10 and 3.14 on GitHub-hosted Ubuntu once the repository is published.
+- Required alpha acceptance: full local tests and repository validation, Git runtime smoke, clean temporary bundle apply/check, and real Codex discovery/invocation.
+- Advisory CI matrix: Python 3.10 and 3.14 on GitHub-hosted Ubuntu when hosted runners are available; hosted CI does not block an alpha release.
 - Windows, macOS, Jujutsu, submodules, unborn `HEAD`, non-Codex agents, and network-filesystem/power-loss durability are not yet verified release claims.
-- The stable `v0.1.0` tag remains blocked on GitHub CI, clean-clone acceptance, real Codex installation, five dogfood scenarios, and one external-project loop.
+- The stable `v0.1.0` tag remains blocked on clean-clone acceptance, real Codex installation, five dogfood scenarios, and one genuinely external-project loop.
 
 ## Validate the repository
 
@@ -192,7 +193,7 @@ PyYAML is a development-time validation dependency only; deployed handrails, the
 
 ## Project status
 
-The atomic manual loop is feature-complete for alpha packaging, but `v0.1.0` is not released. The current goal is to pass clean-checkout CI and real engineering dogfood before adding an orchestrator that automates composition.
+The atomic manual loop is feature-complete for alpha packaging, but `v0.1.0` is not released. The current goal is to complete local release acceptance and real engineering dogfood before adding an orchestrator that automates composition. Hosted CI remains useful independent evidence when available, but is not an alpha gate.
 
 ## License
 

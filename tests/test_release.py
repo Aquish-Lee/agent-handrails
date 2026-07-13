@@ -44,6 +44,8 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertIn("not yet verified", text)
         self.assertIn("3eee4ac41bd6d295ef3253a40109fd0dd72654f7", text)
         self.assertIn("git worktree add --detach", text)
+        self.assertIn("hosted CI does not block an alpha release", text)
+        self.assertNotIn("stable `v0.1.0` tag remains blocked on GitHub CI", text)
 
     def test_changelog_records_v010_capabilities_and_limits(self) -> None:
         text = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
