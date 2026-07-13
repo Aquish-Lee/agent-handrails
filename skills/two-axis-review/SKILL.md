@@ -19,7 +19,8 @@ The normal review path is self-contained. Do not load the full local contract,
 runtime source, runtime `--help`, or the complete
 [smell baseline](references/smell-baseline.md) by default. Open the contract only
 for a user-requested full schema or unresolved contract question; open targeted
-smell sections when the risk map points to them.
+smell sections when the risk map points to them. Once Codex injects this Skill,
+do not reread this `SKILL.md` from disk.
 
 ## Establish the review target
 
@@ -46,6 +47,9 @@ In this source repository, use `runtime/handrails_state.py`.
 Never print the complete inventory, canonical payload, full boundary, or an
 unbounded repository diff. Query the private inventory for its digest, counts,
 path/layer summary, conflicts, and one target set at a time.
+Its top-level compact fields are `contract`, `record`, `schema_version`,
+`base_revision`, `inventory_digest`, `counts`, `workspaces`, and `candidates`;
+do not probe for fields from the full inventory.
 Do not declare `.scratch` merely because logs or Handrails artifacts live there.
 Declare an ignored artifact only when the task explicitly makes its content a
 candidate. A private machine-evidence path inside a worktree must be ignored but
@@ -65,6 +69,13 @@ it. Summarize machine-generated or lockfile changes mechanically instead of
 dumping their contents. Treat supplied test evidence as orientation and rerun
 only the checks needed to establish fresh review evidence.
 
+For source/diff inspection, use one changed source file per command.
+Use at most 20 context lines and at most 240 output lines. Split the command before
+execution when it could exceed that bound. Maintain a private target ledger
+recording which Candidate/Hunk IDs were inspected on each axis; never print the
+ledger or re-expand an inspected hunk unless a new concrete question requires
+it.
+
 Classify every runtime Candidate/Hunk ID exactly once:
 
 - `include-required`;
@@ -79,6 +90,27 @@ files are classified hunk by hunk. When compact inventory says
 `classification_target=hunks`, classify every `hunk_id`, never its parent
 Candidate ID; use the Candidate ID only for
 `classification_target=candidate`.
+
+Write the private classifications with exactly this top-level shape; no contract
+or runtime-source lookup is needed:
+
+```json
+{
+  "task_id": "stable task ID",
+  "outcome_revision": "r1",
+  "inventory_digest": "runtime inventory digest",
+  "logical_units": [
+    {
+      "target_id": "runtime candidate or hunk ID",
+      "classification": "include-required | include-scope-creep | include-inherited-dependency | exclude-proven-unrelated",
+      "rationale": "task-specific semantic reason",
+      "authorization": "authorized | needs-authorization | not-applicable"
+    }
+  ]
+}
+```
+
+Add `boundary_seed_digest` only when consuming an actual Seed.
 
 Rationale is digest-bound semantic content. Choose a private boundary path
 outside participating worktrees, or an ignored Handrails evidence path that

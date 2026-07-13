@@ -119,6 +119,16 @@
         "tracked-candidate-with-hunks": "every-hunk-id",
         "candidate-without-hunks": "candidate-id"
       },
+      "compact_inventory_projection": [
+        "contract",
+        "record",
+        "schema-version",
+        "base-revision",
+        "inventory-digest",
+        "counts",
+        "workspaces",
+        "candidates"
+      ],
       "rationale_binding": "canonical-semantic-content",
       "confirm_requires": [
         "complete-nonoverlapping-classification",

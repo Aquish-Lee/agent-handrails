@@ -215,6 +215,14 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("risk map", text)
         self.assertIn("Inspect every classified candidate", text)
         self.assertIn("load the full local contract", text)
+        self.assertIn("do not reread this `SKILL.md`", text)
+        self.assertIn('"task_id": "stable task ID"', text)
+        self.assertIn('"outcome_revision": "r1"', text)
+        self.assertIn('"inventory_digest": "runtime inventory digest"', text)
+        self.assertIn("one changed source file per command", text)
+        self.assertIn("at most 20 context lines", text)
+        self.assertIn("at most 240 output lines", text)
+        self.assertIn("private target ledger", text)
 
     def test_development_observation_keeps_inventory_private_by_default(self) -> None:
         text = (PROJECT_ROOT / "skills" / "feedback-loop" / "SKILL.md").read_text(encoding="utf-8")

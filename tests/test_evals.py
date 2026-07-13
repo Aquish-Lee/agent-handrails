@@ -26,6 +26,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertEqual(gates["relevant_drift_block_rate"], 1.0)
         self.assertEqual(gates["review_machine_payload_dumps"], 0)
         self.assertEqual(gates["review_candidate_coverage_rate"], 1.0)
+        self.assertEqual(gates["review_oversized_inspection_commands"], 0)
 
     def test_run_template_is_ignored_local_state_not_a_tracked_log(self) -> None:
         suite = eval_v2.load_suite()

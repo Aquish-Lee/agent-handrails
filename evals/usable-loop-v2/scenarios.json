@@ -115,6 +115,7 @@
     "deterministic_boundary_digest": true,
     "review_machine_payload_dumps": 0,
     "review_candidate_coverage_rate": 1.0,
+    "review_oversized_inspection_commands": 0,
     "microtask_max_handrails": 1,
     "fact_max_lines": 12,
     "scoped_task_max_lines": 30,

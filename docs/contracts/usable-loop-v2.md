@@ -60,7 +60,9 @@ without an explicit declaration.
 Compact inventory is a classification-routing projection, not another source
 of mechanical truth. Candidate/Hunk IDs remain bound to full fingerprints in
 the runtime, while redundant fingerprint strings and canonical payloads stay out
-of ordinary agent context. Machine inventories and full boundaries should be
+of ordinary agent context. The projection identifies its contract/schema/base,
+provides counts, workspaces, and candidates, and remains self-describing without
+runtime-source inspection. Machine inventories and full boundaries should be
 redirected to private files and queried incrementally.
 
 ## Evidence and review ownership
@@ -87,7 +89,9 @@ the single `.scratch/<task-id>/STATE.md` Capsule. It is orientation only.
 High-assurance review starts with a risk map and inspects every candidate/hunk;
 risk changes inspection depth, never boundary coverage. Full contracts, record
 templates, broad diffs, and smell references load only when a specific question
-requires them.
+requires them. Source inspection is bounded to one changed source, at most 20
+context lines, and at most 240 output lines per command, with a private coverage
+ledger preventing accidental rereads.
 
 ## Safety
 

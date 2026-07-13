@@ -814,8 +814,18 @@ def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
         }
         for index, workspace in enumerate(result["workspaces"])
     ]
+    hunk_count = sum(len(candidate["hunks"]) for candidate in candidates)
     return {
+        "contract": CONTRACT_ID,
+        "record": "boundary-inventory-compact",
+        "schema_version": SCHEMA_VERSION,
         "inventory_digest": result["inventory_digest"],
+        "base_revision": result["base_revision"],
+        "counts": {
+            "workspaces": len(workspaces),
+            "candidates": len(candidates),
+            "hunks": hunk_count,
+        },
         "workspaces": workspaces,
         "candidates": candidates,
     }

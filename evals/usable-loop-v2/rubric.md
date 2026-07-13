@@ -54,6 +54,9 @@ compare the same candidate before and after instruction/runtime changes.
   semantic coverage and the runtime still enforces complete classification.
 - Inspect targeted diffs and adjacent call paths incrementally. Do not emit a
   full-repository diff or whole generated file merely for convenience.
+- Each source/diff inspection command targets one changed source, requests at
+  most 20 context lines, emits at most 240 lines, and does not repeat already
+  inspected hunks without a new concrete question.
 - Full contract/templates and smell references load only for a specific need.
 - A context reduction is accepted only when Review Record completeness,
   findings quality, fail-closed behavior, and child/integration distinction are

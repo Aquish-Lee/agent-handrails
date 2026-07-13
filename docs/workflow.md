@@ -62,9 +62,12 @@ semantic content, so callers reuse a persisted boundary rather than reconfirming
 it with newly worded rationale.
 
 Compact inventory keeps Candidate/Hunk routing IDs, paths, layers, ordinals,
-headers, and conflicts while omitting redundant fingerprint strings. Store the
-machine projection privately, query it incrementally, and let a risk map control
-inspection depth without reducing complete boundary coverage.
+headers, conflicts, schema/base identity, and counts while omitting redundant
+fingerprint strings. Store the machine projection privately, query it
+incrementally, and let a risk map control inspection depth without reducing
+complete boundary coverage. Inspect one changed source per command with at most
+20 context lines and 240 output lines, tracking covered targets privately to
+avoid repeats.
 
 Private machine evidence inside a participating worktree must be ignored and
 must remain outside declared ignored candidates. Do not declare the `.scratch`

@@ -50,6 +50,9 @@ baseline.
     outside every declared ignored candidate. An ignored location is declared
     only when its content is task state, not merely because Handrails stores
     private evidence there.
+11. The compact inventory is self-describing. Review inspects one changed source
+    at a time with bounded context/output and a private target-coverage ledger,
+    avoiding repeated broad diffs while retaining every Candidate/Hunk.
 
 ## Consequences
 
