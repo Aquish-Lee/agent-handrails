@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible defect in a Skill, runtime, installer, or plugin
+title: "[Bug]: "
+labels:
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a defect. Do not disclose vulnerabilities here; use the private security reporting link instead.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Exact tag or commit, Codex version, and Python version.
+      placeholder: v0.1.0-alpha.2; codex-cli 0.x; Python 3.10
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation mode
+      options:
+        - Codex Plugin
+        - Raw Skills managed bundle
+        - Repository checkout
+        - Other agent implementation
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest safe steps and relevant repository state. Redact secrets and private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and evidence
+      description: Include exact errors, commands, output scope, and whether state changed.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: OS, worktrees, model/surface, boundary/evidence IDs, and redacted logs when relevant.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing Issues and Discussions.
+          required: true
+        - label: This report contains no secrets or unredacted `.scratch/` transcript.
+          required: true
+        - label: This is not a privately reportable security vulnerability.
+          required: true

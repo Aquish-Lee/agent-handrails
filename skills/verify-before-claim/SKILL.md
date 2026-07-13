@@ -1,209 +1,130 @@
 ---
 name: verify-before-claim
-description: "Explicit-invocation completion gate requiring fresh evidence before claiming work is done, fixed, passing, deployed, or safe. Invoke when a user or an explicit orchestrator requests verification, validation, smoke testing, or a completion report."
-disable-model-invocation: true
-argument-hint: "claim or change to verify"
+description: Verify a requested fact, scoped task completion, or high-assurance readiness claim against fresh evidence. Routes narrow facts without review, builds deterministic Claim Boundaries for small tasks, and requires an exact Review Record for broad claims.
 ---
 
 # Verify Before Claim
 
-Evidence before claims. Use this before saying work is done, fixed, passing, deployed, safe, merged-ready, or production-ready.
+Choose the least expensive safe path for the claim width. Never broaden the
+claim beyond fresh evidence.
 
-This skill verifies the **claim being made**, not the agent's confidence. The final wording must be no broader than the evidence.
+<!-- handrails-contract
+contract: usable-loop/v2
+role: claim-gate
+reference: references/usable-loop-v2.md
+runtime: scripts/handrails_state.py
+-->
 
-## Rules
+The `fact` and `scoped-task` routes are self-contained. Do **not** reread this
+SKILL.md, load the local reference, inspect runtime source, or call runtime
+`--help` unless execution fails or the user requests a full schema.
 
-- Do not let ambient model matching select this skill. Invocation must come from the user or an explicit orchestrator/harness decision.
-- No success wording before fresh verification.
-- Verify the narrowest claim that matters, then escalate only when task shape, blast radius, or acceptance criteria demand it.
-- Read exit code and output. Do not rely on "looks fine" or a command merely starting.
-- If verification is blocked, report the blocker and do not claim success.
-- If verification fails, report the failure and the next useful diagnostic step; do not rephrase failure as partial success.
-- Do not fabricate command output, timestamps, logs, or test results.
-- Do not use old evidence unless it is explicitly still fresh and relevant; when in doubt, rerun or downgrade the claim.
-- Do not use tests passing as proof of outcome unless the tests/checks encode the relevant acceptance criteria.
+## Route by claim width
 
-## Claim-shaped calibration, not rigid levels
+### `fact`
 
-Choose evidence by the shape of the claim. These are calibration aids, not gates.
+A narrow observable statement such as a command result, file existence, config
+readback, or one named check. Run the smallest observation. Produce fresh Claim
+Evidence and a Claim Record without a boundary or review. Return claim wording,
+`claim_kind=fact`, check/result, scope limit, and stale condition.
 
-### Operational claim
+### `scoped-task`
 
-Examples: service is running, config loaded, port is open, model is available, job finished.
+Completion of a bounded small code task. Resolve `<this-skill-dir>` from this
+installed Skill; in this source repository use `runtime/handrails_state.py`.
+Inventory all current candidates:
 
-Useful evidence:
-- status command or process check,
-- config/readback command,
-- port/health/log check,
-- dry-run or no-op check if available.
-
-### Bug-fix claim
-
-Examples: the reported error is fixed, regression no longer happens, failing input now works.
-
-Useful evidence:
-- original repro now passes,
-- focused regression test,
-- relevant log no longer shows the error,
-- no masking of the symptom by swallowing errors.
-
-### Code-change claim
-
-Examples: implementation completed, tests pass, behavior changed as intended.
-
-Useful evidence:
-- focused test or smoke path at the public seam,
-- relevant suite/build/type/lint when blast radius requires it,
-- acceptance criteria mapped to observed behavior.
-
-### Refactor / migration claim
-
-Examples: behavior preserved, interface migrated, data/config transition safe.
-
-Useful evidence:
-- characterization tests or before/after smoke checks,
-- compatibility checks,
-- migration/readback/rollback check,
-- affected integration path still works.
-
-### Deployment / runtime claim
-
-Examples: deployed, reachable, healthy, safe to roll forward.
-
-Useful evidence:
-- command exit code from deploy/start/reload,
-- service status,
-- health endpoint or functional smoke,
-- logs after the change,
-- config/version/readback,
-- rollback path identified or tested when risk demands it.
-
-### Review / merge-readiness claim
-
-Examples: ready to merge, no blocking issues, acceptable risk.
-
-Useful evidence:
-- `two-axis-review` result or equivalent diff review,
-- verification matrix coverage,
-- known remaining risks stated explicitly,
-- CI/local checks relevant to the changed area.
-
-## Process
-
-1. **Name the exact claim**
-
-   Good:
-   - "The API smoke path returns 200 locally."
-   - "The original repro no longer fails."
-   - "Focused tests for `<module>` pass."
-
-   Too broad unless proven:
-   - "The feature works."
-   - "The bug is fixed everywhere."
-   - "The deployment is safe."
-   - "No regressions."
-
-2. **Map claim to evidence**
-
-   For each claim, state:
-   - What would prove it?
-   - What command/check/log/readback will be used?
-   - What output or exit code is expected?
-   - What would remain unproven even if the check passes?
-
-3. **Run or inspect evidence**
-
-   Prefer the smallest convincing command first. Escalate if:
-   - the command only proves a function-level detail while the claim is system-level,
-   - the change touches multiple files/modules,
-   - acceptance criteria involve runtime behavior,
-   - deployment/data/security/safety risk exists,
-   - prior checks are stale or from a different environment.
-
-4. **Interpret evidence honestly**
-
-   - Passing command with irrelevant scope = not enough evidence.
-   - Command starts but process later crashes = not verified.
-   - Log contains warnings relevant to the claim = partially verified or not verified.
-   - One happy-path smoke does not prove edge cases unless the claim is limited to the happy path.
-
-5. **State result with scoped language**
-
-   Use:
-   - `Verified by <command/check>: <specific claim>.`
-   - `Partially verified: <what passed>; missing <what remains>.`
-   - `Not verified: <blocker/failure>.`
-   - `Verification failed: <evidence>; next diagnostic step is <step>.`
-
-## Gate format
-
-````markdown
-## Claim to verify
-- Claim:
-- Outcome source / acceptance criteria:
-- Environment:
-- Freshness requirement:
-
-## Evidence plan
-| Claim part | Check / command | Expected evidence | Scope limit |
-| --- | --- | --- | --- |
-| ... | ... | ... | ... |
-
-## Commands / checks run
 ```bash
-<command 1>
-<command 2>
+python <this-skill-dir>/scripts/handrails_state.py inventory \
+  --compact --repository . --base <task-base> [...] \
+  > <private-inventory.json>
 ```
 
-## Evidence observed
-- Exit codes:
-- Key output / logs / readback:
-- Failures / warnings:
-- What this proves:
-- What this does not prove:
+Keep the machine inventory out of the response and tool transcript. Query its
+digest, counts, paths, and one target set at a time. For
+`classification_target=hunks`, classify every runtime `hunk_id` and never the
+parent Candidate ID; for `classification_target=candidate`, classify its
+`candidate_id` once. The private inventory path must be outside participating
+worktrees or ignored and undeclared. Pass exactly this shape through stdin:
 
-## Result
-Verified | Partially verified | Not verified | Verification failed
+```json
+{
+  "task_id": "stable task ID",
+  "outcome_revision": "r1",
+  "inventory_digest": "runtime inventory digest",
+  "logical_units": [
+    {
+      "target_id": "runtime candidate or hunk ID",
+      "classification": "include-claim | exclude-proven-unrelated",
+      "rationale": "task-specific reason",
+      "authorization": "authorized | not-applicable"
+    }
+  ]
+}
+```
 
-## Remaining risk / next step
-- ...
-````
+Use each runtime target ID exactly once. `include-claim` requires `authorized`;
+`exclude-proven-unrelated` requires `not-applicable`. Never invent an ID or
+digest. Rationale is digest-bound semantic content. Choose a private boundary
+path outside participating worktrees, or an ignored Handrails evidence path
+that is **not** passed through `--declare-ignored`. Never write machine evidence
+inside a declared ignored candidate; that would immediately stale the state.
+Confirm once with the same capture arguments:
 
-## Language discipline
+```bash
+python <this-skill-dir>/scripts/handrails_state.py confirm \
+  --compact --kind claim --classifications - \
+  --boundary-out <private-claim-boundary.json> \
+  --repository . --base <task-base> [...]
+```
 
-Allowed only after evidence:
+Treat the persisted boundary as opaque. Never open, parse, query, or print that
+artifact; pass it unchanged only to `capture`. Read scalar digests from the
+compact `confirm` result and later compact `capture` result, not from the full
+boundary file.
 
-- "Verified by `<command>`: ..."
-- "Focused tests passed for `<scope>`: ..."
-- "Smoke check passed for `<path>` in `<environment>`: ..."
-- "Partially verified: ..."
-- "Not verified because ..."
-- "Verification failed because ..."
+Run narrow checks. Then validate the exact confirmed artifact:
 
-Avoid before evidence or when evidence is too narrow:
+```bash
+python <this-skill-dir>/scripts/handrails_state.py capture --compact \
+  --boundary <private-claim-boundary.json>
+```
 
-- "done"
-- "fixed"
-- "works"
-- "safe"
-- "ready"
-- "no regressions"
-- "should work"
-- "looks good"
-- "probably"
+Require its Boundary, Inventory, and Code State Token digests to match the
+confirmation. Drift blocks the claim. Do not reconfirm merely to reconstruct a
+discarded payload. The Claim Record carries `claim_boundary_digest`, not Review
+ID.
 
-## When to call another skill
+### `high-assurance`
 
-- Use `feedback-loop` when no good verification seam exists yet.
-- Use `two-axis-review` when the claim is merge-readiness or implementation quality, not just runtime/test evidence.
-- Use `spec-lite` or `grill` when the claim cannot be verified because the desired outcome is still ambiguous.
+Merge-ready, integrated, production/deployment safe, no-regressions, or similar.
+Read [the local v2 contract](references/usable-loop-v2.md). Require a formal
+Review Record, validate its boundary, and recapture current state:
 
-## Anti-patterns
+```bash
+python <this-skill-dir>/scripts/handrails_state.py capture \
+  --compact --boundary <review-boundary.json>
+```
 
-- Running a broad command and claiming success without reading output.
-- Treating typecheck/build success as proof of product behavior.
-- Treating a mocked unit test as proof of integration behavior.
-- Saying "fixed" when only one symptom was suppressed.
-- Claiming deployment success from a successful upload without service health/readback.
-- Ignoring warnings because exit code was zero.
-- Expanding the claim after seeing narrow evidence.
+Outcome Revision, Boundary Digest, and Code State Token must match exactly. The
+Claim Record carries `review_id`, not Claim Boundary Digest. If wording is
+ambiguous, widen the route or explicitly narrow the claim. Never hide a review
+transition inside a micro fact.
+
+## Produce claim evidence
+
+Only this skill produces Claim Evidence with `fresh | stale | blocked`.
+Development evidence is orientation only. Record Evidence ID, task/outcome,
+exact state and environment, boundary/review link, check/result, narrow scope,
+capture time, and stale conditions. Outcome, boundary, relevant code state, or
+environment changes stale it; rerun the narrow check.
+
+The Claim Record states exact wording, claim kind, Evidence IDs, `supported |
+limited | unsupported | blocked | stale`, scope limits, and invalidation. Never
+say done, safe, integrated, or regression-free beyond the evidence.
+
+## Direct result
+
+For a fact, use at most 12 lines. For a scoped task, use at most 30 lines.
+Return conclusion, evidence, scope limit, and necessary next step. Expand only
+on explicit request or a Checkpoint trigger. No mandatory Feedback Loop backflow.

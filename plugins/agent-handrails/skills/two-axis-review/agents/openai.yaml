@@ -1,0 +1,6 @@
+interface:
+  display_name: "Two-Axis Review"
+  short_description: "Review outcome fit and engineering quality independently"
+  default_prompt: "Use $two-axis-review to review the actual current task state on both review axes."
+policy:
+  allow_implicit_invocation: false

@@ -2,6 +2,8 @@
 
 Playbooks are advisory compositions of independent handrails. They are not mandatory chains, and a capable user or harness should skip steps that do not change the next decision, boundary, evidence, or review quality.
 
+For the end-to-end manual loop, including dirty-state review and cross-session cleanup, see [Practical Development Loop](practical-development-loop.md).
+
 ## Small bounded change
 
 ```text

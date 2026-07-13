@@ -1,5 +1,6 @@
 interface:
   display_name: "Feedback Loop"
-  short_description: "Guide work with behavior, regression, smoke, and runtime evidence"
+  short_description: "Guide development with focused behavioral evidence"
+  default_prompt: "Use $feedback-loop to build the shortest trustworthy development feedback loop for this task."
 policy:
   allow_implicit_invocation: false

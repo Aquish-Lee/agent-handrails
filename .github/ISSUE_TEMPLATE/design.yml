@@ -1,0 +1,51 @@
+name: Design proposal
+description: Propose a contract, architecture, governance, or distribution decision
+title: "[Design]: "
+labels:
+  - needs-triage
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and decision pressure
+      description: What evidence or constraint makes a durable design decision necessary?
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Proposed decision
+      description: State the decision precisely, including affected contract/version.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and tradeoffs
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility, migration, and rollback
+      description: Address v1 immutability, Raw/Plugin distribution, evidence, and user recovery as applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: Include tests, dogfood/eval scenarios, cost limits, and failure signals.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight
+      options:
+        - label: I read CONTEXT.md and relevant ADRs.
+          required: true
+        - label: I searched for an existing proposal.
+          required: true
+        - label: I am prepared to update or add an ADR if accepted.
+          required: true

@@ -1,0 +1,20 @@
+{
+  "name": "agent-handrails",
+  "interface": {
+    "displayName": "Agent Handrails"
+  },
+  "plugins": [
+    {
+      "name": "agent-handrails",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-handrails"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

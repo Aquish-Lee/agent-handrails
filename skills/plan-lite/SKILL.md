@@ -1,134 +1,70 @@
 ---
 name: plan-lite
-description: "Explicit-invocation compact implementation planning for multi-step coding tasks. Invoke when a user or an explicit orchestrator requests a plan, task breakdown, tracer bullets, or implementation roadmap."
-disable-model-invocation: true
-argument-hint: "feature/spec/bugfix to plan"
+description: Create a compact implementation strategy when a user explicitly requests a plan or a non-trivial task needs ordered, verifiable work slices, risk controls, and a review-boundary seed. Skip obvious single-step edits.
 ---
 
 # Plan Lite
 
-Create enough plan to make implementation reliable, without Superpowers-style exhaustive ceremony or a full formal spec.
+Turn a sufficiently clear outcome into the smallest plan that makes execution,
+verification, review, and rollback legible.
 
-## Rules
+<!-- handrails-contract
+contract: usable-loop/v2
+role: execution-planner
+reference: references/usable-loop-v2.md
+runtime: none
+-->
 
-- Do not let ambient model matching select this skill. Invocation must come from the user or an explicit orchestrator/harness decision.
-- Do not plan operational micro-tasks unless the user asks; give commands directly and verify instead.
-- Do not force rigid risk levels. Use task shape, uncertainty, blast radius, and acceptance criteria to choose planning depth.
-- Let task granularity follow complexity. Use enough slices to make the work understandable, executable, and reviewable; do not force an arbitrary task count.
-- Keep tasks vertical where possible: behavior + implementation + verification together.
-- This is a strategy and execution map, not a mechanical TODO list. Each task must explain intent, boundary, and evidence, not just list chores.
-- Include exact files when known; otherwise include an explicit discovery step.
-- Include verification for each task and a final verification matrix.
-- Include rollback/isolation notes when the change touches deployment, data, broad refactors, or production-like paths.
-- Do not paste full implementation code unless API shape, algorithm, or test shape is the thing being decided.
+Read [the local v2 contract](references/usable-loop-v2.md) for complete record
+fields and authority/invalidation rules.
 
-## Relationship to specs
+## Preconditions
 
-This skill consumes the best available outcome source and turns it into an implementation plan. It does not automatically create a formal spec.
+Use the current request, Alignment Snapshot, or Outcome Contract as the outcome
+source. An unconflicted current user request is authoritative when the user owns
+the task. Agent-derived interpretation is provisional. If a missing decision
+would materially change the plan, expose it instead of burying it as a task.
 
-Use `spec-lite` first when the missing piece is a stable outcome contract: behavior rules, interface/data contracts, acceptance criteria, domain invariants, or durable handoff. Otherwise, keep the live outcome source in the current conversation, an `grill` alignment snapshot, an issue/PRD, or this plan's acceptance criteria.
+Do not require a spec. Do not plan a clear one-step edit. Do not execute the plan
+or silently invoke another handrail.
 
-## Before writing the plan
+## Build the implementation map
 
-If important gaps remain, do not fabricate. Either:
+State:
 
-- ask one clarifying question,
-- state assumptions explicitly,
-- recommend `grill` first when the uncertainty is a design/product decision,
-- or recommend `spec-lite` first when the uncertainty is an outcome contract that should be formalized.
+1. goal, acceptance criteria, and non-goals;
+2. chosen implementation strategy and major tradeoffs;
+3. ordered vertical slices with observable completion;
+4. verification at the narrow, integration, and risk-specific levels;
+5. isolation/rollback needs and explicit authorization gates;
+6. known dependencies, unknowns, and stopping conditions.
 
-Important gaps include unclear acceptance criteria, unknown target environment, unknown public seam, ambiguous data contract, or disagreement between local and deployment behavior.
+Prefer independently verifiable slices over file-by-file activity lists. Name
+likely files only when they clarify navigation; planned paths are hypotheses.
 
-## Plan format
+## Review Boundary Seed
 
-```markdown
-# <Task> Plan
+Produce a compact seed containing:
 
-Task shape:
-Goal:
-Acceptance criteria:
-Non-goals:
-Assumptions:
-Open questions / known unknowns:
-Blast radius:
-Primary seams:
-Isolation / rollback:
+- exact Outcome Reference binding;
+- expected logical changes;
+- dependent/generated changes;
+- authorization guardrails;
+- known pre-existing changes;
+- participating workspaces;
+- base/recovery hints;
+- open boundary questions;
+- `Path semantics: hypotheses-not-allowlist`.
 
-## Implementation strategy
-<short explanation of chosen approach and why it is the smallest professional path>
+The seed does not approve omitted paths and does not classify future changes.
+Branch Sandbox may record actual task-start delta from it. Two-Axis Review or
+Verify Before Claim must inventory and classify current candidates mechanically.
 
-## Tasks
+## Direct result
 
-### 1. <Tracer bullet / milestone slice>
-Intent:
-Scope:
-Files:
-Steps:
-Verification:
-Change boundary:
-
-### 2. ...
-
-## Verification matrix
-| Layer | Command / check | Expected evidence |
-| --- | --- | --- |
-| Focused | ... | ... |
-| Integration / smoke | ... | ... |
-| Build / type / lint | ... | ... |
-| Deployment / runtime, if relevant | ... | ... |
-
-## Review gate
-Use `two-axis-review` if this changes behavior across multiple files, touches production paths, or implements acceptance criteria that are easy to misunderstand.
-
-## Suggested next skill
-`spec-lite` if outcome contract is still unstable | `feedback-loop` | `branch-sandbox` | `two-axis-review` | `verify-before-claim` | none
-```
-
-## Plan fit review
-
-Review the plan against this concrete task and project, not against generic planning aesthetics.
-
-```markdown
-## Plan fit review
-- Acceptance fit: Does the plan directly satisfy the stated acceptance criteria?
-- Project fit: Does it match current repo architecture, conventions, runtime, and constraints?
-- Execution fit: Can an agent/developer act on the next slice without guessing?
-- Verification fit: Are the proposed checks actually able to prove the claim in this project?
-- Flexibility: Which parts are likely to change after spec/design/implementation feedback?
-- Confidence: High | Medium | Low, with evidence from code/docs/tests/env inspected.
-```
-
-If confidence is low because important project facts were not inspected, say what must be inspected next instead of making the plan look complete.
-
-## Plan persistence
-
-Default to keeping plan context in the current conversation. Plans are often temporary and should not create stale project documentation by default.
-
-Recommend saving a plan to a file only when one of these is true:
-
-- Multiple sessions or agents must coordinate from it.
-- The plan is a durable decision record or external handoff.
-- The user explicitly asks to save it.
-- The plan will survive beyond the current session and needs review later.
-
-If saving, include status/currentness markers:
-
-```markdown
-Status: draft | active | superseded
-Last updated:
-Superseded by:
-Stale when:
-```
-
-For Codex App workflows, prefer using the main planning conversation as the living plan context, then fork/derive child sessions for spec design or implementation. Feed child-session findings back into the main planning conversation instead of accumulating unmaintained plan files.
-
-## Planning heuristics
-
-- A task is good when it can be reviewed independently and verified with concrete evidence.
-- Prefer tracer bullets or milestone slices over horizontal layers: do not create separate tasks for "all tests", then "all implementation", then "all cleanup" unless the repo forces that structure.
-- Keep acceptance criteria visible. Tests passing is not enough if acceptance criteria are not met.
-- Avoid speculative abstraction; note extension points only when required now.
-- Let task count emerge from complexity. For goal-mode or refactor work, plan by milestone/slice rather than compressing everything into a fixed number of tasks.
-- If multiple agents will execute the plan, include enough context per task that a fresh agent can work without reading the whole conversation.
-- For deployment/migration plans, include exact commands, config readback, health checks, log checks, and rollback commands.
-- Use `Change boundary` to describe the intended commit/review/rollback boundary. Suggest actual commit messages only when git history design matters.
+Return the strategy, ordered slices, verification matrix, main risk/rollback,
+and Review Boundary Seed. Keep it conversational unless the user asks for a
+durable artifact. Bind Task ID, Outcome Revision, and Authority in one line by
+default; do not expand the full Outcome Reference or record schema unless the
+user explicitly asks for it or continuity requires it. Use a Checkpoint only on
+a continuity trigger.

@@ -1,0 +1,36 @@
+{
+  "name": "agent-handrails",
+  "version": "0.1.0-alpha.2",
+  "description": "Explicit, claim-scaled engineering handrails for AI coding agents.",
+  "author": {
+    "name": "Aquish-Lee",
+    "url": "https://github.com/Aquish-Lee"
+  },
+  "homepage": "https://github.com/Aquish-Lee/agent-handrails#readme",
+  "repository": "https://github.com/Aquish-Lee/agent-handrails",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agent-skills",
+    "software-engineering",
+    "code-review",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Handrails",
+    "shortDescription": "Explicit engineering discipline without a forced workflow.",
+    "longDescription": "Seven independently useful handrails for outcome alignment, planning, evidence-guided development, deterministic current-state review, proportionate verification, and reversible isolation.",
+    "developerName": "Aquish-Lee",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use the smallest Agent Handrail that materially improves this task.",
+      "Review the current task state on outcome fit and engineering quality.",
+      "Verify this claim with the narrowest safe fresh-evidence path."
+    ]
+  }
+}

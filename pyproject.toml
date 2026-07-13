@@ -1,0 +1,42 @@
+[project]
+name = "agent-handrails"
+version = "0.1.0a2"
+description = "Explicit engineering handrails for AI coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Aquish" },
+]
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "bandit==1.9.4",
+  "pyyaml==6.0.3",
+  "ruff==0.15.21",
+  "skills-ref==0.1.1; python_version >= '3.11'",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = [
+  "plugins/agent-handrails/skills",
+  "runtime/git_state.py",
+  "skills/*/scripts/handrails_state.py",
+  "skills/*/scripts/safe_diff.py",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.bandit]
+exclude_dirs = [
+  ".scratch",
+  ".venv",
+  "plugins",
+  "skills",
+  "tests",
+]
+skips = ["B404", "B603", "B607"]

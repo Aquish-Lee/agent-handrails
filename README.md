@@ -4,134 +4,207 @@
 
 > Don't put your coding agent on rails. Give it handrails.
 
-Not vibe coding. Not workflow capture. Agent Handrails is a small set of explicit, composable engineering primitives that you can invoke by hand today and orchestrate through a coding engineering harness tomorrow.
+[![Release](https://img.shields.io/github/v/release/Aquish-Lee/agent-handrails?include_prereleases)](https://github.com/Aquish-Lee/agent-handrails/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status: community-ready alpha](https://img.shields.io/badge/status-community--ready%20alpha-orange)](#project-status)
 
-**Core thesis:** autonomy should be earned, not assumed.
+Agent Handrails is seven explicit, independently useful engineering primitives.
+It preserves professional discipline without forcing every task through a
+brainstorm/spec/plan/test/review pipeline.
 
 ## Why
 
-AI coding agents benefit from professional engineering discipline, but a useful discipline does not need to become a mandatory ceremony for every task.
+- Use the smallest safe path for the task and requested claim.
+- Keep human selection, override, authorization, and rollback visible.
+- Review the real current state, including dirty and multi-worktree changes.
+- Separate development observations from evidence that supports a claim.
+- Persist only when continuity is at risk; avoid accumulating phase documents.
+- Automate composition only after the atomic skills earn trust through dogfood.
 
-Agent Handrails takes a different path:
+The active `usable-loop/v2` contract scales verification by claim width:
 
-- use the smallest professional path that protects quality;
-- keep each handrail useful on its own;
-- formalize specs only when durable outcome alignment helps;
-- test and verify the real behavior or claim, not a ritual proxy;
-- preserve human visibility, override, and rollback;
-- automate only after the primitives and their selection logic have earned trust.
+| Claim | Required path |
+| --- | --- |
+| `fact` | Direct fresh observation; no Boundary or Review Record |
+| `scoped-task` | Deterministic Claim Boundary over all current candidates plus fresh checks |
+| `high-assurance` | Exact current two-axis Review Record plus supporting claim evidence |
 
-## The handrails
+Any relevant outcome, boundary, code-state, or environment change stales the
+evidence. v2 reruns the narrowest check instead of carrying evidence across a
+change.
 
-| Handrail | Purpose |
-|---|---|
-| [`grill`](skills/grill/SKILL.md) | Clarify consequential uncertainty without forcing a design ceremony. |
-| [`spec-lite`](skills/spec-lite/SKILL.md) | Create a compact outcome contract only when conversation context is insufficient. |
-| [`plan-lite`](skills/plan-lite/SKILL.md) | Turn an outcome source into a strategy and execution map. |
-| [`feedback-loop`](skills/feedback-loop/SKILL.md) | Use tests, repros, smoke checks, and runtime evidence to stay aligned with real behavior. |
-| [`two-axis-review`](skills/two-axis-review/SKILL.md) | Review outcome fit and engineering quality separately, with evidence reported explicitly. |
-| [`verify-before-claim`](skills/verify-before-claim/SKILL.md) | Keep completion claims no broader than fresh evidence. |
-| [`branch-sandbox`](skills/branch-sandbox/SKILL.md) | Isolate risky or parallel work with explicit boundaries and rollback paths. |
+## The seven handrails
 
-These are a toolbox, not a mandatory chain.
+| Handrail | Atomic result |
+| --- | --- |
+| [`grill`](skills/grill/SKILL.md) | Resolve consequential uncertainty into an Alignment Snapshot |
+| [`spec-lite`](skills/spec-lite/SKILL.md) | Capture converged intent as a lightweight Outcome Contract |
+| [`plan-lite`](skills/plan-lite/SKILL.md) | Produce an implementation strategy and Review Boundary Seed |
+| [`feedback-loop`](skills/feedback-loop/SKILL.md) | Produce development evidence for the next engineering move |
+| [`two-axis-review`](skills/two-axis-review/SKILL.md) | Produce a deterministic Review Boundary and formal Review Record |
+| [`verify-before-claim`](skills/verify-before-claim/SKILL.md) | Produce proportionate claim evidence and a Claim Record |
+| [`branch-sandbox`](skills/branch-sandbox/SKILL.md) | Establish a reversible workspace/authorization boundary |
 
-## Manual-first does not mean manual-only
+These are a toolbox, not a mandatory chain. Each Skill disables implicit Codex
+invocation and may only suggest—not silently invoke—another handrail.
 
-Each skill currently carries cross-platform frontmatter:
+## Install as a Codex Plugin (recommended)
 
-```yaml
-disable-model-invocation: true
+Install the immutable prerelease through this repository's marketplace:
+
+```bash
+codex plugin marketplace add Aquish-Lee/agent-handrails --ref v0.1.0-alpha.2
+codex plugin add agent-handrails@agent-handrails
+codex plugin list --json
 ```
 
-For Codex, each skill also carries:
-
-```yaml
-policy:
-  allow_implicit_invocation: false
-```
-
-These disable ambient model matching on platforms that support the respective metadata: a platform should not silently inject a skill merely because it might be relevant. They do **not** forbid explicit automation.
-
-A user, playbook, or coding engineering harness may explicitly select a handrail. The selection should remain inspectable:
-
-- Why this handrail?
-- Why now?
-- What evidence or decision should it produce?
-- What was intentionally skipped?
-- When should control return to the human?
-
-See [Philosophy](docs/philosophy.md) and [Harness Roadmap](docs/harness-roadmap.md).
-
-## Progressive autonomy
-
-Agent Handrails is designed to support a progression rather than a binary manual/automatic choice:
-
-1. **Direct mode** — a person invokes one handrail.
-2. **Suggested mode** — an agent recommends the next useful handrail and waits.
-3. **Orchestrated mode** — a harness explicitly selects handrails and records why.
-4. **Autonomous mode** — a capable agent executes within bounded workspaces and returns an evidence bundle.
-
-The repository currently focuses on the validated primitives. It does not yet claim to provide a production-ready autonomous harness.
-
-## Example compositions
+Start a new Codex session after installation. Plugin Skills use the plugin
+namespace:
 
 ```text
-Small, clear change
-  implement -> verify-before-claim
-
-Ambiguous feature
-  grill -> optional spec-lite -> plan-lite -> feedback-loop
-  -> two-axis-review -> verify-before-claim
-
-Large or parallel refactor
-  branch-sandbox -> plan-lite -> feedback-loop
-  -> two-axis-review -> verify-before-claim
+$agent-handrails:plan-lite Create a compact implementation plan for this request.
+$agent-handrails:two-axis-review Review the actual current dirty task state.
+$agent-handrails:verify-before-claim Verify only that this JSON file parses.
 ```
 
-These are examples, not required workflows. Direct implementation plus verification is valid when the task is already clear and bounded.
+The alpha.2 package has been validated against Codex's real marketplace/add
+flow; its cache contains only `.codex-plugin/plugin.json` and the seven Skills.
 
-More examples live in [`playbooks/`](playbooks/README.md).
+To move to a newer immutable tag, remove the installed plugin and pinned
+marketplace, then add the new ref:
 
-## Project source and callable copies
+```bash
+codex plugin remove agent-handrails@agent-handrails
+codex plugin marketplace remove agent-handrails
+codex plugin marketplace add Aquish-Lee/agent-handrails --ref <new-tag>
+codex plugin add agent-handrails@agent-handrails
+```
 
-Keep the Git repository in an engineering workspace and treat `skills/` as the canonical source. Deploy copies into the local directory that Codex or another agent reads:
+## Install standard Raw Skills
+
+Raw Skills remain Agent Skills-compatible for manual installation and other
+implementations:
+
+```bash
+git clone --branch v0.1.0-alpha.2 --depth 1 \
+  https://github.com/Aquish-Lee/agent-handrails.git
+cd agent-handrails
+
+uvx --from skills-ref==0.1.1 agentskills validate skills/branch-sandbox
+# Repeat validation for each directory under skills/.
+
+python3 scripts/render_contract.py --check
+python3 scripts/render_plugin.py --check
+python3 scripts/sync_skills.py --apply --codex-link-root ~/.agents/skills
+python3 scripts/sync_skills.py --check --codex-link-root ~/.agents/skills
+```
+
+New installations default to
+`${XDG_DATA_HOME:-~/.local/share}/agent-handrails/skills`. An existing managed
+`~/Workspace/Skills/.agent-handrails` layout stays there automatically. Override
+the target with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`.
+
+Managed updates stage and verify a complete content-addressed bundle, then
+atomically switch one `current` pointer. Previous bundles remain available for
+rollback. Unrelated skills/discovery entries are never managed.
+
+### Safe uninstall and purge
+
+The ownership manifest records every public/discovery link the project may
+remove. A replaced or malformed path makes uninstall fail before any deletion.
+
+```bash
+# Remove only manifest-owned links; retain bundles for rollback.
+python3 scripts/sync_skills.py --uninstall
+
+# Explicitly delete verified retained bundles and managed metadata too.
+python3 scripts/sync_skills.py --uninstall --purge
+```
+
+Re-running `--apply` after a normal uninstall restores the retained bundle and
+links. `--purge` never removes unrelated content from the target directory.
+
+### Roll back to alpha.1 and forward again
+
+Alpha.1 is an immutable Raw-Skills-only historical baseline. Use detached
+worktrees so the active checkout is untouched:
+
+```bash
+git worktree add --detach /tmp/agent-handrails-alpha1 v0.1.0-alpha.1
+python3 /tmp/agent-handrails-alpha1/scripts/sync_skills.py \
+  --apply --codex-link-root ~/.agents/skills
+
+git worktree add --detach /tmp/agent-handrails-alpha2 v0.1.0-alpha.2
+python3 /tmp/agent-handrails-alpha2/scripts/sync_skills.py \
+  --apply --codex-link-root ~/.agents/skills
+```
+
+Remove the detached worktrees only after checking that their worktree state
+contains no results you need.
+
+## Deterministic boundaries
+
+Skills that need exact Git state carry a standalone copy of
+`handrails_state.py`. The interface is:
 
 ```text
-~/Workspace/Projects/agent-handrails/skills/   # develop and review here
-                 ↓ explicit sync
-~/Workspace/Skills/<skill>/                    # callable deployment copies
-                 ↑ Codex follows discovery symlinks
-~/.agents/skills/<skill>                       # pointers only, never source
+inventory
+confirm --kind claim|review --classifications <file|->
+capture --boundary <confirmed-boundary.json>
 ```
 
-Check whether the callable copies match the project source:
+The runtime assigns Candidate/Hunk IDs from mechanical fingerprints. Semantic
+classifications reference only those IDs and include rationale plus
+`authorized | needs-authorization | not-applicable`. It computes the canonical
+SHA-256 digest itself and recaptures state. Missing units, overlaps, unmerged
+conflicts, unauthorized included changes, drift, or tampering fail closed.
+
+Before a review reads raw diffs, `safe_diff.py` privately preflights the base,
+current tree, and diff. Credential-shaped, sensitive-path, symlink-escape, and
+oversized inputs are reduced to structural metadata; ordinary source remains
+available as bounded review chunks.
+
+## Develop and validate
+
+Requirements: Linux, Git, Python 3.10+, and `uv`.
 
 ```bash
-python3 scripts/sync_skills.py --check \
-  --codex-link-root ~/.agents/skills
+uv sync --group dev
+uv run python scripts/quality.py
 ```
 
-Install or update all seven managed handrails:
+The local gate runs tests, contract/plugin drift checks, official Agent Skills
+validation, Ruff, Bandit, and packaging checks. Hosted GitHub Actions are
+manual/advisory while billing is unavailable; they do not replace local or real
+Codex acceptance.
 
-```bash
-python3 scripts/sync_skills.py --apply \
-  --codex-link-root ~/.agents/skills
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md), [the v2 contract](docs/contracts/usable-loop-v2.md),
+[domain context](CONTEXT.md), and [the practical playbook](playbooks/practical-development-loop.md).
 
-The default deployment root is `~/Workspace/Skills`. Override it with `--target PATH` or `AGENT_HANDRAILS_SKILLS_DIR`. `--codex-link-root` creates individual discovery symlinks because Codex scans `~/.agents/skills` for user-level skills. The sync script manages only the seven handrails declared by this repository; unrelated skills and pre-existing discovery paths are left untouched.
+## Compatibility
 
-Callable copies are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. Each handrail includes `agents/openai.yaml` with `policy.allow_implicit_invocation: false`, so Codex can expose it for explicit invocation without ambient matching. Other agents may interpret metadata differently.
-
-## Validate the repository
-
-```bash
-python3 scripts/validate.py
-```
+- Supported baseline: Linux, Git, Python 3.10+, Codex.
+- Primary distribution: Codex Plugin; compatibility distribution: Raw Skills.
+- Not yet verified release claims: Windows, macOS, Jujutsu, submodules, unborn
+  `HEAD`, non-Codex agents, and network-filesystem/power-loss durability.
+- No automatic orchestrator, persistent evidence service, telemetry, or bundle
+  garbage collector is included.
 
 ## Project status
 
-Early and intentionally small. The current goal is to validate each handrail through real engineering work before adding an orchestrator that automates their composition.
+`v0.1.0-alpha.2` is a **community-ready alpha**: the repository, governance,
+distribution, and local acceptance paths are independently maintainable, while
+long-term product behavior is still being validated through real development
+dogfood. It is not a stable `v0.1.0` release.
 
-## License
+Use [Discussions](https://github.com/Aquish-Lee/agent-handrails/discussions) for
+support, [Issues](https://github.com/Aquish-Lee/agent-handrails/issues) for
+defects/proposals, and the private process in [SECURITY.md](SECURITY.md) for
+vulnerabilities. Governance and maintainers are documented in
+[GOVERNANCE.md](GOVERNANCE.md) and [MAINTAINERS.md](MAINTAINERS.md).
 
-MIT. See [`LICENSE`](LICENSE).
+## License and provenance
+
+Agent Handrails is MIT licensed. See [LICENSE](LICENSE),
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and
+[ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).

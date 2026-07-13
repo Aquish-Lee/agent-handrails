@@ -1,5 +1,6 @@
 interface:
   display_name: "Verify Before Claim"
-  short_description: "Scope completion claims to fresh supporting evidence"
+  short_description: "Scale verification to claim width and fresh evidence"
+  default_prompt: "Use $verify-before-claim to verify this claim with the narrowest safe evidence path."
 policy:
   allow_implicit_invocation: false

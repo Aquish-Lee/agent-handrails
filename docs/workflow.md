@@ -1,176 +1,118 @@
 # Agent Handrails Workflow
 
-This document describes how the atomic handrails fit together without turning them into a mandatory workflow.
+Agent Handrails exposes seven explicit primitives without imposing a universal
+pipeline. Select one only when it changes the next decision, boundary, evidence,
+or claim.
 
-## Design thesis
+## Selection rule
 
-Handrails should serve the engineer's development rhythm, not take it over. The repository exposes professional discipline as small explicit primitives that work manually and remain ready for visible, inspectable orchestration.
+- Execute and directly observe a clear micro-task.
+- Use `grill` only for consequential unresolved intent.
+- Use `spec-lite` only when durable outcome semantics help.
+- Use `plan-lite` when ordered slices, risk controls, or a boundary seed help.
+- Use `branch-sandbox` when isolation materially improves rollback/interference.
+- Use `feedback-loop` when iterative behavioral evidence improves development.
+- Use `two-axis-review` for explicit review and high-assurance readiness.
+- Use `verify-before-claim` for the exact claim being made.
 
-## Non-goals
+A skill may suggest another, but must return control. There is no hidden
+transition or mandatory chain.
 
-- No always-on gateway skill.
-- No "1% chance means invoke" rule.
-- No mandatory brainstorming/spec/TDD/review chain for every task.
-- No auto-triggered replacement for professional judgment.
-- No assumption that manual-first means automation is forbidden.
+## Outcome continuity
 
-## Invocation contract
+All active skills use `usable-loop/v2`. An unconflicted current request is
+authoritative when the user controls the scope. Agent-derived interpretation is
+provisional. Outcome changes create a new revision; dependent evidence becomes
+stale.
 
-Use the smallest professional path that protects quality. The listed skills are a toolbox, not a chain.
+Every skill is a direct entry point and can create the minimal Outcome Reference
+it needs. A saved spec, plan, or Capsule does not become authority by existing.
 
-- Start from the user's actual request, not from a workflow template.
-- Invoke a skill only when it changes the next decision, evidence, isolation, review quality, or handoff quality.
-- Prefer one next useful skill over running the whole set.
-- Stop adding process when remaining uncertainty no longer changes implementation, verification, rollback, or review.
-- If a task is clear and low-risk, execute and verify directly.
-- If a skill recommends another skill, treat it as advice, not an automatic transition.
+## Claim-scaled paths
 
-## Automation contract
+```text
+narrow fact
+  direct observation → fresh claim evidence → fact Claim Record
 
-Manual-first does not mean manual-only. A user, playbook, or coding engineering harness may explicitly select a handrail.
+small completed task
+  inventory → Claim Boundary → narrow checks → scoped-task Claim Record
 
-- Ambient model matching is disabled; a skill should not appear merely because it might be relevant.
-- An orchestrator selection is explicit invocation, not ambient matching.
-- The orchestrator should record why the handrail was selected, what output/evidence it should produce, and when control returns.
-- Automation must preserve inspectability, override, bounded execution, and rollback.
-- A harness should use the same smallest-professional-path rule as a human user.
-- Autonomy should increase only after the primitive, transition, model capability, and project feedback stack have earned trust.
+merge/deploy/production/no-regressions claim
+  inventory → Review Boundary → two-axis Review Record
+  → exact recapture/checks → high-assurance Claim Record
+```
 
-The current repository validates handrails first. Playbooks and a future harness compose them later; each handrail must remain independently useful.
+Micro facts never require review. Broad claims never downgrade to a small-task
+boundary merely to avoid review.
 
-## Spec lifecycle
+## Real current state
 
-There is no mandatory spec artifact for every task.
+`runtime/handrails_state.py` inventories committed-since-base, staged,
+unstaged, untracked, explicitly declared ignored artifacts, and participating
+worktrees. It emits deterministic Candidate/Hunk IDs. Semantic classification
+references those IDs; the runtime validates complete non-overlapping coverage,
+authorization, canonicalizes the payload, computes SHA-256 itself, and
+recaptures state. Compact confirmation can atomically persist the full boundary
+to an explicit path; later validation captures that exact artifact.
 
-- For small tasks and many bug fixes, the "spec" may simply be the current conversation: goal, non-goals, acceptance criteria, bug repro, or an alignment snapshot.
-- `grill` can produce an **Alignment Snapshot** when uncertainty is resolved, but it does not create a formal spec by default.
-- `spec-lite` can turn a converged alignment snapshot, issue, PRD, bug repro, or behavior description into a lightweight outcome contract when formalization is useful.
-- `plan-lite` turns the outcome source into an execution map: acceptance criteria, assumptions, seams, tasks, and verification. It is a plan, not automatically a formal spec.
-- Create a saved formal spec only when it materially helps: multi-session coordination, durable handoff, complex domain behavior, high-risk acceptance criteria, or explicit user request.
-- If a saved spec is created, mark currentness/status so it does not become stale authority.
-- Review should use the best available **Outcome source**: issue, PRD, saved spec, plan, conversation alignment snapshot, bug repro, deployment objective, or explicit "no outcome source". Do not invent a spec when none exists.
+The runtime never accepts a caller's naked Boundary Digest. Undeclared ignored
+content is not scanned. Missing units, unauthorized included changes, state
+drift, or digest mismatch fail closed. Classification rationale is digest-bound
+semantic content, so callers reuse a persisted boundary rather than reconfirming
+it with newly worded rationale.
 
-## Task shapes, not rigid levels
+Compact inventory keeps Candidate/Hunk routing IDs, paths, layers, ordinals,
+headers, conflicts, schema/base identity, and counts while omitting redundant
+fingerprint strings. Store the machine projection privately, query it
+incrementally, and let a risk map control inspection depth without reducing
+complete boundary coverage. Inspect one changed source per command with at most
+20 context lines and 240 output lines, tracking covered targets privately to
+avoid repeats.
 
-Software engineering work is open-ended. These shapes are a shared vocabulary for choosing how much process is useful, not a classifier that restricts the agent.
+Private machine evidence inside a participating worktree must be ignored and
+must remain outside declared ignored candidates. Do not declare the `.scratch`
+root merely because logs or Capsules exist there: declaring it makes its bytes
+part of the boundary, so a later log write would stale the record.
 
-### Operational micro-task
+## Evidence ownership
 
-Examples: run a service, inspect state, produce executable commands, fix a local environment issue.
+Feedback Loop's `observed` development evidence guides the next engineering
+move. It cannot support a completion claim. Verify Before Claim reruns the
+required checks and owns `fresh` claim evidence. There is no reverse backflow
+requirement.
 
-Useful discipline:
-- Identify target and blast radius.
-- Execute narrowly.
-- Verify with command output or readback.
+Any relevant Outcome Revision, Boundary Digest, code-state, or environment
+change stales dependent evidence. v2 does not retain old evidence after an
+unrelatedness argument; run the narrowest relevant check again.
 
-Typical skills:
-- `verify-before-claim`.
+## Conversation-first continuity
 
-### Bug fix
+Ordinary calls return conclusion, evidence, scope limits, and the necessary next
+step. Any handrail may expand a Checkpoint only for pause/block, cross-session or
+agent handoff, context risk, expensive/non-repeatable evidence, or explicit
+handoff request. Persist at most one rewritten `.scratch/<task-id>/STATE.md`.
 
-Examples: reported error, failing test, runtime exception, performance regression.
+Resume in this order:
 
-Useful discipline:
-- Reproduce or minimize the symptom.
-- Explain the causal hypothesis before fixing.
-- Add regression coverage or a deterministic smoke check when practical.
-- Verify before claiming fixed.
+1. reconcile the designated Outcome Source and Revision;
+2. read the Capsule for orientation;
+3. recapture all participating state;
+4. treat prior evidence as stale when any binding changed.
 
-Typical skills:
-- `grill` only if the desired behavior or blast radius is ambiguous.
-- `feedback-loop` for regression/repro loop.
-- `verify-before-claim`.
+Promote durable knowledge to an Issue, PR, spec, or ADR and delete the Capsule
+after integration/handoff when it contains no unique information.
 
-### Feature work
+## Isolation safety
 
-Examples: implement a behavior, endpoint, UI workflow, adapter, or model-service integration.
+Stash, force branch deletion, deletion of worktrees containing results, reset,
+rebase, and overwrite require explicit authorization. Default to reporting
+cleanup commands with preconditions, not executing them.
 
-Useful discipline:
-- Clarify product/engineering choices that affect implementation.
-- Create a compact tracer-bullet plan when multiple files or states are involved.
-- Test important public seams.
-- Review both outcome fit and engineering quality.
+## Distribution and release evidence
 
-Typical skills:
-- `grill`
-- optional `spec-lite` when behavior or acceptance needs a durable outcome contract
-- `plan-lite`
-- `feedback-loop`
-- `two-axis-review`
-- `verify-before-claim`
-
-### Goal-mode development
-
-Examples: complete a phase with acceptance criteria and an approximate implementation direction.
-
-Useful discipline:
-- Preserve the goal and acceptance criteria as the north star.
-- Split into milestones or tracer bullets.
-- Keep context fresh through handoffs, notes, or subagents when needed.
-- Verify against acceptance criteria, not just tests.
-
-Typical skills:
-- `grill`
-- optional `spec-lite`
-- `plan-lite`
-- optional branch/worktree isolation
-- `two-axis-review`
-- `verify-before-claim`
-
-### Large refactor
-
-Examples: execute a refactor plan, untangle modules, migrate interfaces, change architecture.
-
-Useful discipline:
-- Isolate work when blast radius is high.
-- Preserve behavior with characterization tests or smoke checks.
-- Move in reversible increments.
-- Review design quality separately from behavior preservation.
-
-Typical skills:
-- `branch-sandbox`
-- optional `spec-lite` before planning if behavior preservation or interface contracts need formalization
-- `plan-lite`
-- `feedback-loop` or characterization tests
-- `two-axis-review`
-- `verify-before-claim`
-
-### Deployment / migration
-
-Examples: move locally verified work to server, deploy service, adapt environment/runtime.
-
-Useful discipline:
-- Separate local correctness from target-environment correctness.
-- Write exact commands and rollback steps.
-- Verify service state, logs, ports, health checks, and config readback.
-
-Typical skills:
-- `plan-lite` if multiple commands or environments are involved.
-- `verify-before-claim`.
-- `branch-sandbox` only if code/config changes are risky.
-
-### Unknown / hybrid
-
-If the task does not fit cleanly, say so. Use the task shape as a conversation aid, not a restriction. The agent should adapt the process to the actual uncertainty and blast radius.
-
-## Atomic handrails
-
-1. `grill` — clarify intent and design decisions without forcing a spec ceremony.
-2. `spec-lite` — create a lightweight outcome contract when conversation-only context is not enough.
-3. `plan-lite` — produce a compact tracer-bullet implementation plan.
-4. `feedback-loop` — use seam-based tests, repros, smoke checks, and runtime evidence where feedback improves confidence.
-5. `two-axis-review` — review changes separately for outcome fit and engineering quality.
-6. `verify-before-claim` — require fresh evidence before success claims.
-7. `branch-sandbox` — isolate risky work in a branch/worktree with rollback clarity.
-
-## Installation model
-
-Separate engineering source from agent runtime copies:
-
-- Develop, review, validate, and version the canonical handrails in this Git repository.
-- Deploy copies into the agent-facing skills root and create Codex discovery pointers with `python3 scripts/sync_skills.py --apply --codex-link-root ~/.agents/skills`.
-- Detect runtime or discovery-link drift with `python3 scripts/sync_skills.py --check --codex-link-root ~/.agents/skills`.
-- Never treat a deployed copy as a second source of truth; edit the project and sync again.
-- The deployment manifest contains only the seven Agent Handrails skills, so unrelated skills in the target root are not managed.
-
-Every current skill sets `disable-model-invocation: true` for compatible platforms and `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` for Codex. These disable ambient model selection, but they do not prevent a user or explicit harness from invoking the skill deliberately. Platform behavior varies, so verify how each agent interprets metadata before claiming compatibility.
+Canonical source lives in this repository. `scripts/render_contract.py --check`
+guards generated skill-local contract/runtime copies. The bundle installer
+deploys all seven skills together. Local tests, repository validation, official
+Skill validation, temporary install/check, real Codex calls, and clean-clone
+acceptance are release evidence. Hosted CI remains advisory while billing is
+unavailable.

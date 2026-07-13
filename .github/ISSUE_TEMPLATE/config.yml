@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage and support discussion
+    url: https://github.com/Aquish-Lee/agent-handrails/discussions
+    about: Ask installation, usage, and workflow questions.
+  - name: Report a vulnerability privately
+    url: https://github.com/Aquish-Lee/agent-handrails/security/advisories/new
+    about: Do not disclose suspected vulnerabilities in a public Issue.
