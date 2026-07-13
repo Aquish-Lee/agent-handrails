@@ -227,6 +227,8 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("one changed source file per command", text)
         self.assertIn("at most 20 context lines", text)
         self.assertIn("at most 240 output lines", text)
+        self.assertIn("Never print a raw content diff for a lockfile or generated artifact", text)
+        self.assertIn("summary of at most 40", text)
         self.assertIn("private target ledger", text)
 
     def test_development_observation_keeps_inventory_private_by_default(self) -> None:

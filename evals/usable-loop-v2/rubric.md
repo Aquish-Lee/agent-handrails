@@ -58,6 +58,9 @@ compare the same candidate before and after instruction/runtime changes.
   semantic coverage and the runtime still enforces complete classification.
 - Inspect targeted diffs and adjacent call paths incrementally. Do not emit a
   full-repository diff or whole generated file merely for convenience.
+- Lockfiles and generated artifacts use their authoritative check plus a
+  mechanically derived package/metadata/hash summary of at most 40 lines; raw
+  content or diff output is a context-budget failure.
 - Each source/diff inspection command targets one changed source, requests at
   most 20 context lines, emits at most 240 lines, and does not repeat already
   inspected hunks without a new concrete question.

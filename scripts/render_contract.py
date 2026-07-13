@@ -141,6 +141,8 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
                 "Never serialize all candidates or loop over Candidate/Hunk records to",
                 "stdout, even in compact form. Expose at most one target set per command",
                 "and write generated classifications privately without echoing units.",
+                "Never print raw lockfile or generated-artifact content; inspect its",
+                "source/check and emit only a mechanical summary of at most 40 lines.",
                 "A private path is outside participating worktrees or ignored but not",
                 "declared as a Boundary candidate. Never write machine evidence inside",
                 "a declared ignored artifact; that would immediately stale the state.",

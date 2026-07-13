@@ -72,9 +72,11 @@ Inspect every classified candidate at least once on both Outcome Fit and
 Engineering Quality. For a tracked candidate, inspect every hunk; start with a
 targeted diff and adjacent tests, then widen into callers, shared invariants,
 generated artifacts, migrations, or operations when risk or evidence warrants
-it. Summarize machine-generated or lockfile changes mechanically instead of
-dumping their contents. Treat supplied test evidence as orientation and rerun
-only the checks needed to establish fresh review evidence.
+it. Never print a raw content diff for a lockfile or generated artifact. Inspect
+its generator/source separately, run the authoritative drift or lock check, and
+emit only a mechanically derived package/metadata/hash summary of at most 40
+lines. Treat supplied test evidence as orientation and rerun only the checks
+needed to establish fresh review evidence.
 
 For source/diff inspection, use one changed source file per command.
 Use at most 20 context lines and at most 240 output lines. Split the command before
