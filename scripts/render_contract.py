@@ -120,7 +120,7 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
                 "",
                 "```text",
                 "inventory",
-                "confirm --kind claim|review --classifications <file|->",
+                "confirm --kind claim|review --classifications <file|-> [--boundary-out <path>]",
                 "capture --boundary <confirmed-boundary.json>",
                 "```",
                 "",
@@ -129,6 +129,9 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
                 "needs-authorization | not-applicable`. Never invent or pass a naked",
                 "digest. Missing units, authorization conflicts, drift, and digest",
                 "mismatch block the operation.",
+                "Rationale is canonical semantic content. Persist one confirmed",
+                "boundary with `--boundary-out`, then reuse that exact artifact for",
+                "`capture`; do not reconfirm merely to reconstruct its payload.",
                 "",
             ]
         )

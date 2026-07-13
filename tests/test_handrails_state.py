@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import stat
 import subprocess
 import sys
 import tempfile
@@ -398,6 +399,96 @@ class BoundaryCliTests(HandrailsStateFixture):
         self.assertEqual(boundary["inventory_digest"], inventory_git_state["inventory_digest"])
         self.assertTrue(boundary["boundary_digest"].startswith("sha256:"))
         self.assertTrue(boundary["code_state_token"].startswith("sha256:"))
+
+    def test_compact_confirm_persists_exact_captureable_boundary_atomically(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        inventory = self.inventory(base="HEAD", relevant_environment={})
+        classifications = self.complete_classifications(inventory)
+        boundary_path = self.root / "private" / "claim-boundary.json"
+        boundary_path.parent.mkdir()
+
+        confirm_completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--boundary-out",
+                str(boundary_path),
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            input=json.dumps(classifications),
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        compact = json.loads(confirm_completed.stdout)
+        persisted = json.loads(boundary_path.read_text(encoding="utf-8"))
+
+        self.assertNotIn("canonical_payload", compact)
+        self.assertIn("canonical_payload", persisted)
+        self.assertEqual(compact["boundary_digest"], persisted["boundary_digest"])
+        self.assertEqual(stat.S_IMODE(boundary_path.stat().st_mode), 0o600)
+
+        capture_completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "capture",
+                "--compact",
+                "--boundary",
+                str(boundary_path),
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        capture = json.loads(capture_completed.stdout)
+        self.assertEqual(capture["boundary_digest"], compact["boundary_digest"])
+        self.assertEqual(capture["code_state_token"], compact["code_state_token"])
+
+    def test_failed_confirmation_does_not_replace_existing_boundary_artifact(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        inventory = self.inventory(base="HEAD", relevant_environment={})
+        classifications = self.complete_classifications(inventory)
+        boundary_path = self.root / "claim-boundary.json"
+        boundary_path.write_text("keep-existing\n", encoding="utf-8")
+        write(self.repository / "tracked.txt", "DRIFT\ntwo\nthree\nfour\nfive\n")
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--boundary-out",
+                str(boundary_path),
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            input=json.dumps(classifications),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("inventory digest", completed.stderr)
+        self.assertEqual(boundary_path.read_text(encoding="utf-8"), "keep-existing\n")
 
 
 if __name__ == "__main__":

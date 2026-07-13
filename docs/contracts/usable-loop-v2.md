@@ -37,7 +37,14 @@ record never upgrades authority.
 Inventory assigns IDs from mechanical fingerprints. Humans or agents classify
 only those IDs and provide rationale plus authorization state. Confirm requires
 complete, non-overlapping coverage, computes the canonical digest itself, and
-recaptures state. Capture rejects a modified payload or any later drift.
+recaptures state. `confirm --boundary-out <path>` atomically persists the full
+confirmed boundary while compact stdout remains a summary. Capture rejects a
+modified payload or any later drift.
+
+Rationale is canonical semantic content, not presentation prose. Changing the
+rationale creates a different semantic boundary. A caller therefore persists
+one confirmed boundary and later captures that exact artifact instead of
+reconfirming merely to reconstruct a discarded payload.
 
 Tracked files are classified by hunk. Untracked and explicitly declared ignored
 artifacts are classified by complete content. Ignored content is never scanned

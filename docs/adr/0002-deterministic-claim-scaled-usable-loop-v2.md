@@ -26,7 +26,9 @@ baseline.
 3. A local runtime inventories Git candidates, assigns stable Candidate/Hunk
    IDs, validates complete semantic classifications, creates the canonical
    payload, computes its SHA-256 digest, and recaptures state. Callers cannot
-   supply a naked digest.
+   supply a naked digest. Compact confirmation may atomically persist that full
+   boundary through an explicit output path so later checks capture the exact
+   artifact instead of reconstructing it.
 4. Development evidence is `observed`, never claim-supporting. Only
    verify-before-claim produces claim evidence with `fresh | stale | blocked`.
 5. Any relevant outcome, boundary, code-state, or environment change stales
@@ -37,6 +39,9 @@ baseline.
 7. A current user request is authoritative when the user controls the task and
    no permission/source conflict exists. Agent-derived or reinterpreted meaning
    remains provisional.
+8. Classification rationale is canonical semantic content. Editing it creates a
+   new boundary even when mechanical state and classification categories are
+   unchanged.
 
 ## Consequences
 

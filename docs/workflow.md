@@ -52,11 +52,14 @@ unstaged, untracked, explicitly declared ignored artifacts, and participating
 worktrees. It emits deterministic Candidate/Hunk IDs. Semantic classification
 references those IDs; the runtime validates complete non-overlapping coverage,
 authorization, canonicalizes the payload, computes SHA-256 itself, and
-recaptures state.
+recaptures state. Compact confirmation can atomically persist the full boundary
+to an explicit path; later validation captures that exact artifact.
 
 The runtime never accepts a caller's naked Boundary Digest. Undeclared ignored
 content is not scanned. Missing units, unauthorized included changes, state
-drift, or digest mismatch fail closed.
+drift, or digest mismatch fail closed. Classification rationale is digest-bound
+semantic content, so callers reuse a persisted boundary rather than reconfirming
+it with newly worded rationale.
 
 ## Evidence ownership
 

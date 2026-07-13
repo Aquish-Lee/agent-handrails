@@ -83,6 +83,8 @@ class UsableLoopV2ContractTests(unittest.TestCase):
     def test_boundary_runtime_policy_forbids_caller_digest_and_requires_recapture(self) -> None:
         policy = load_contract()["policies"]["boundary-runtime"]
         self.assertEqual(policy["caller_supplied_digest"], "forbidden")
+        self.assertEqual(policy["compact_boundary_persistence"], "explicit-boundary-out")
+        self.assertEqual(policy["rationale_binding"], "canonical-semantic-content")
         self.assertIn("second-identical-state-capture", policy["confirm_requires"])
         self.assertIn("state-drift", policy["fail_on"])
         runtime = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_text(encoding="utf-8")
@@ -186,7 +188,17 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         )
         self.assertIn("The `fact` and `scoped-task` routes are self-contained", text)
         self.assertIn("--compact --kind claim", text)
+        self.assertIn("--boundary-out", text)
+        self.assertIn("capture --compact", text)
         self.assertIn("load the local reference, inspect runtime source", text)
+
+    def test_review_route_persists_and_recaptures_one_exact_boundary(self) -> None:
+        text = (PROJECT_ROOT / "skills" / "two-axis-review" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--boundary-out", text)
+        self.assertIn("capture --compact", text)
+        self.assertIn("Do not reconfirm", text)
 
 
 if __name__ == "__main__":

@@ -93,7 +93,7 @@
     "boundary-runtime": {
       "interface": [
         "inventory",
-        "confirm --kind claim|review --classifications <file|->",
+        "confirm --kind claim|review --classifications <file|-> [--boundary-out <path>]",
         "capture --boundary <confirmed-boundary.json>"
       ],
       "candidate_id_material": [
@@ -107,6 +107,8 @@
       "canonicalization": "sorted-key-compact-json-utf8",
       "digest": "sha256",
       "caller_supplied_digest": "forbidden",
+      "compact_boundary_persistence": "explicit-boundary-out",
+      "rationale_binding": "canonical-semantic-content",
       "confirm_requires": [
         "complete-nonoverlapping-classification",
         "runtime-generated-target-ids",

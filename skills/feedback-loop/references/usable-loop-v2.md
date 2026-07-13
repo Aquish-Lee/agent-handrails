@@ -62,7 +62,7 @@ In the Agent Handrails source repository, the canonical equivalent is
 
 ```text
 inventory
-confirm --kind claim|review --classifications <file|->
+confirm --kind claim|review --classifications <file|-> [--boundary-out <path>]
 capture --boundary <confirmed-boundary.json>
 ```
 
@@ -71,6 +71,9 @@ unit needs one classification, a rationale, and `authorized |
 needs-authorization | not-applicable`. Never invent or pass a naked
 digest. Missing units, authorization conflicts, drift, and digest
 mismatch block the operation.
+Rationale is canonical semantic content. Persist one confirmed
+boundary with `--boundary-out`, then reuse that exact artifact for
+`capture`; do not reconfirm merely to reconstruct its payload.
 
 ## Evidence ownership
 

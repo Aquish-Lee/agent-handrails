@@ -53,11 +53,15 @@ needs-authorization | not-applicable`. Excluded units require evidence of
 unrelatedness. Included task/scope-creep units require authorization. Mixed
 files are classified hunk by hunk.
 
-Confirm with the same capture parameters:
+Rationale is digest-bound semantic content. Choose a private boundary path
+outside participating worktrees; use an already-declared ignored Capsule
+location only when a continuity trigger requires persistence. Confirm once with
+the same capture parameters:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py confirm \
-  --kind review --classifications <file|-> \
+  --compact --kind review --classifications <file|-> \
+  --boundary-out <private-review-boundary.json> \
   --repository . --base <task-base> [...same capture arguments...]
 ```
 
@@ -77,6 +81,16 @@ Inspect correctness, failure handling, security, maintainability, interfaces,
 tests, observability, performance, and operational/recovery behavior in
 proportion to risk. Report findings by severity with exact locations and impact.
 Avoid style-only churn unless it affects maintainability or repository policy.
+
+After the review checks, validate the exact confirmed artifact:
+
+```bash
+python <this-skill-dir>/scripts/handrails_state.py capture --compact \
+  --boundary <private-review-boundary.json>
+```
+
+Do not reconfirm merely to reconstruct a discarded payload. Boundary,
+Inventory, and Code State Token mismatch or drift blocks the Review Record.
 
 ## Produce the Review Record
 

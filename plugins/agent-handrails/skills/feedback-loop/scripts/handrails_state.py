@@ -15,6 +15,7 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
@@ -692,6 +693,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     _add_capture_arguments(confirm_parser)
     confirm_parser.add_argument("--kind", choices=sorted(CLASSIFICATIONS), required=True)
     confirm_parser.add_argument("--classifications", required=True)
+    confirm_parser.add_argument(
+        "--boundary-out",
+        type=Path,
+        help="atomically persist the full confirmed boundary for later capture",
+    )
     capture_parser = commands.add_parser("capture", help="recapture a confirmed boundary")
     capture_parser.add_argument("--boundary", type=Path, required=True)
     capture_parser.add_argument(
@@ -713,6 +719,35 @@ def _read_json(path: str | Path) -> dict[str, object]:
     if not isinstance(value, dict):
         raise BoundaryError(f"JSON from {path} must be an object")
     return value
+
+
+def _write_json_atomic(path: Path, value: Mapping[str, object]) -> None:
+    destination = Path(os.path.abspath(os.fspath(path)))
+    temporary: Path | None = None
+    descriptor: int | None = None
+    try:
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=destination.parent,
+            prefix=f".{destination.name}.",
+            suffix=".tmp",
+        )
+        temporary = Path(temporary_name)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            descriptor = None
+            json.dump(value, output, ensure_ascii=True, sort_keys=True, indent=2)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, destination)
+        temporary = None
+    except OSError as error:
+        raise BoundaryError(f"cannot publish boundary to {destination}: {error}") from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
@@ -800,6 +835,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 participating_worktrees=arguments.participating_worktree,
                 relevant_environment=_environment(arguments.environment),
             )
+            if arguments.boundary_out is not None:
+                _write_json_atomic(arguments.boundary_out, result)
         else:
             result = capture_boundary(_read_json(arguments.boundary))
     except BoundaryError as error:

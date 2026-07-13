@@ -60,17 +60,29 @@ classify its `candidate_id`. Pass exactly this shape through stdin:
 
 Use each runtime target ID exactly once. `include-claim` requires `authorized`;
 `exclude-proven-unrelated` requires `not-applicable`. Never invent an ID or
-digest. Confirm the Claim Boundary with the same capture arguments:
+digest. Rationale is digest-bound semantic content. Choose a private boundary
+path outside participating worktrees; use an already-declared ignored Capsule
+location only when a continuity trigger requires persistence. Confirm once with
+the same capture arguments:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py confirm \
   --compact --kind claim --classifications - \
+  --boundary-out <private-claim-boundary.json> \
   --repository . --base <task-base> [...]
 ```
 
-Run narrow checks. Then rerun compact inventory through a JSON filter that emits
-only `inventory_digest`; require it to equal the confirmed digest. Drift blocks
-the claim. The Claim Record carries `claim_boundary_digest`, not Review ID.
+Run narrow checks. Then validate the exact confirmed artifact:
+
+```bash
+python <this-skill-dir>/scripts/handrails_state.py capture --compact \
+  --boundary <private-claim-boundary.json>
+```
+
+Require its Boundary, Inventory, and Code State Token digests to match the
+confirmation. Drift blocks the claim. Do not reconfirm merely to reconstruct a
+discarded payload. The Claim Record carries `claim_boundary_digest`, not Review
+ID.
 
 ### `high-assurance`
 
@@ -80,7 +92,7 @@ Review Record, validate its boundary, and recapture current state:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py capture \
-  --boundary <review-boundary.json>
+  --compact --boundary <review-boundary.json>
 ```
 
 Outcome Revision, Boundary Digest, and Code State Token must match exactly. The
