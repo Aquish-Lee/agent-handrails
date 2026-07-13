@@ -96,6 +96,36 @@ class HandrailsStateFixture(unittest.TestCase):
 
 
 class InventoryTests(HandrailsStateFixture):
+    def test_multi_worktree_inventory_and_review_boundary_bind_both_states(self) -> None:
+        side = self.root / "side-worktree"
+        git(self.repository, "worktree", "add", "-b", "side", str(side), self.base)
+        write(self.repository / "tracked.txt", "PRIMARY\ntwo\nthree\nfour\nfive\n")
+        write(side / "tracked.txt", "SIDE\ntwo\nthree\nfour\nfive\n")
+
+        inventory = self.inventory(
+            participating_worktrees=(self.repository, side),
+        )
+        classifications = self.complete_classifications(inventory, kind="review")
+        boundary = self.runtime.confirm_boundary(
+            kind="review",
+            classifications=classifications,
+            repository=self.repository,
+            base=self.base,
+            participating_worktrees=(self.repository, side),
+            relevant_environment={"platform": "linux", "python": "3.10"},
+        )
+
+        self.assertEqual(len(inventory["workspaces"]), 2)
+        self.assertEqual(
+            {candidate["workspace"] for candidate in inventory["candidates"]},
+            {str(self.repository), str(side)},
+        )
+        self.assertEqual(len(boundary["code_state_token"]["workspaces"]), 2)
+        self.assertEqual(
+            boundary["canonical_payload"]["inventory_digest"],
+            inventory["inventory_digest"],
+        )
+
     def test_inventory_emits_deterministic_candidate_and_hunk_ids(self) -> None:
         write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nFIVE\n")
         write(self.repository / "untracked.txt", "new\n")
