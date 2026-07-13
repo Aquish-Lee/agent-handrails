@@ -57,7 +57,9 @@ baseline.
     target set, while bulk ID-to-classification transforms stay in private files
     and emit only aggregate counts or digests. Lockfiles and generated artifacts
     are inspected through their source/check plus a bounded mechanical summary,
-    never a raw content dump.
+    never a raw content dump. The persisted confirmed boundary is opaque and is
+    passed unchanged to capture; only compact confirm/capture scalar results are
+    transcript-safe.
 
 ## Consequences
 

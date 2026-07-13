@@ -52,6 +52,9 @@ compare the same candidate before and after instruction/runtime changes.
   all generated classification units counts as a full machine-payload dump,
   including when the source is compact inventory. A query exposes at most one
   target set; private transforms may print only aggregate counts or digests.
+- A persisted confirmed boundary is opaque. Opening, parsing, querying, or
+  printing any of its nested fields is a machine-payload dump; only scalar
+  fields from compact confirm/capture results may enter the transcript.
 - Compact inventory may expose IDs, paths, layers, hunk ordinals/headers, and
   conflicts, but not redundant candidate/hunk fingerprints.
 - A risk map controls inspection depth; every candidate/hunk still receives

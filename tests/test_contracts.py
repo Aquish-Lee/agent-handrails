@@ -194,6 +194,8 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("--compact --kind claim", text)
         self.assertIn("--boundary-out", text)
         self.assertIn("capture --compact", text)
+        self.assertIn("Treat the persisted boundary as opaque", text)
+        self.assertIn("Never open, parse, query, or print that", text)
         self.assertIn("load the local reference, inspect runtime source", text)
 
     def test_review_route_persists_and_recaptures_one_exact_boundary(self) -> None:
@@ -202,6 +204,8 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         )
         self.assertIn("--boundary-out", text)
         self.assertIn("capture --compact", text)
+        self.assertIn("Treat the persisted boundary as opaque", text)
+        self.assertIn("Never open, parse, query, or print that", text)
         self.assertIn("Do not reconfirm", text)
 
     def test_review_route_keeps_machine_payloads_private_and_inspection_complete(self) -> None:

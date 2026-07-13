@@ -91,6 +91,8 @@ a declared ignored artifact; that would immediately stale the state.
 Rationale is canonical semantic content. Persist one confirmed
 boundary with `--boundary-out`, then reuse that exact artifact for
 `capture`; do not reconfirm merely to reconstruct its payload.
+The persisted boundary is opaque: never open, parse, query, or print
+it. Read scalar digests only from compact confirm/capture results.
 
 ## Evidence ownership
 

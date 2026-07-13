@@ -78,6 +78,11 @@ python <this-skill-dir>/scripts/handrails_state.py confirm \
   --repository . --base <task-base> [...]
 ```
 
+Treat the persisted boundary as opaque. Never open, parse, query, or print that
+artifact; pass it unchanged only to `capture`. Read scalar digests from the
+compact `confirm` result and later compact `capture` result, not from the full
+boundary file.
+
 Run narrow checks. Then validate the exact confirmed artifact:
 
 ```bash
