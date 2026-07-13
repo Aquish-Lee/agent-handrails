@@ -119,7 +119,9 @@ class UsableLoopV2ContractTests(unittest.TestCase):
                 self.assertIn("Contract: usable-loop/v2", reference.read_text())
 
     def test_runtime_skills_are_standalone_and_generated(self) -> None:
-        canonical = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_bytes()
+        canonical_path = PROJECT_ROOT / "runtime" / "handrails_state.py"
+        canonical = canonical_path.read_bytes()
+        self.assertTrue(canonical_path.stat().st_mode & 0o111)
         for name in (
             "branch-sandbox",
             "feedback-loop",
@@ -129,6 +131,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
             with self.subTest(skill=name):
                 local = PROJECT_ROOT / "skills" / name / "scripts" / "handrails_state.py"
                 self.assertEqual(local.read_bytes(), canonical)
+                self.assertTrue(local.stat().st_mode & 0o111)
                 completed = subprocess.run(
                     [sys.executable, str(local), "--help"],
                     check=True,
@@ -138,9 +141,12 @@ class UsableLoopV2ContractTests(unittest.TestCase):
                 )
                 self.assertIn("inventory", completed.stdout)
 
-        safe_diff = (PROJECT_ROOT / "runtime" / "safe_diff.py").read_bytes()
+        safe_diff_path = PROJECT_ROOT / "runtime" / "safe_diff.py"
+        safe_diff = safe_diff_path.read_bytes()
+        self.assertTrue(safe_diff_path.stat().st_mode & 0o111)
         local_safe_diff = PROJECT_ROOT / "skills" / "two-axis-review" / "scripts" / "safe_diff.py"
         self.assertEqual(local_safe_diff.read_bytes(), safe_diff)
+        self.assertTrue(local_safe_diff.stat().st_mode & 0o111)
         completed = subprocess.run(
             [sys.executable, str(local_safe_diff), "--help"],
             check=True,

@@ -28,6 +28,7 @@ Python 3.11+ and is invoked through a pinned `uvx` environment.
 - `contracts/usable-loop-v2.json` is the active machine contract.
 - `skills/` contains canonical standard Raw Skills.
 - `runtime/handrails_state.py` is the canonical v2 boundary runtime.
+- `runtime/safe_diff.py` is the canonical sensitive-review preflight runtime.
 - skill-local v2 references/runtime copies are generated.
 - `plugins/agent-handrails/skills/` is the generated minimal Codex plugin payload.
 - v1 contract/runtime files are immutable history.

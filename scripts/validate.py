@@ -69,6 +69,7 @@ REQUIRED_FILES = {
     "requirements-dev.txt",
     "runtime/git_state.py",
     "runtime/handrails_state.py",
+    "runtime/safe_diff.py",
     "scripts/eval_v2.py",
     "scripts/quality.py",
     "scripts/render_contract.py",

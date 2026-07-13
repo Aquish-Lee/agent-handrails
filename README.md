@@ -159,6 +159,11 @@ classifications reference only those IDs and include rationale plus
 SHA-256 digest itself and recaptures state. Missing units, overlaps, unmerged
 conflicts, unauthorized included changes, drift, or tampering fail closed.
 
+Before a review reads raw diffs, `safe_diff.py` privately preflights the base,
+current tree, and diff. Credential-shaped, sensitive-path, symlink-escape, and
+oversized inputs are reduced to structural metadata; ordinary source remains
+available as bounded review chunks.
+
 ## Develop and validate
 
 Requirements: Linux, Git, Python 3.10+, and `uv`.
