@@ -84,6 +84,10 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         policy = load_contract()["policies"]["boundary-runtime"]
         self.assertEqual(policy["caller_supplied_digest"], "forbidden")
         self.assertEqual(policy["compact_boundary_persistence"], "explicit-boundary-out")
+        self.assertEqual(
+            policy["boundary_output_inside_worktree"],
+            "ignored-and-not-declared-only",
+        )
         self.assertEqual(policy["rationale_binding"], "canonical-semantic-content")
         self.assertIn("second-identical-state-capture", policy["confirm_requires"])
         self.assertIn("state-drift", policy["fail_on"])
@@ -199,6 +203,24 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("--boundary-out", text)
         self.assertIn("capture --compact", text)
         self.assertIn("Do not reconfirm", text)
+
+    def test_review_route_keeps_machine_payloads_private_and_inspection_complete(self) -> None:
+        text = (PROJECT_ROOT / "skills" / "two-axis-review" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("The normal review path is self-contained", text)
+        self.assertIn("--compact", text)
+        self.assertIn("> <private-inventory.json>", text)
+        self.assertIn("Never print the complete inventory", text)
+        self.assertIn("risk map", text)
+        self.assertIn("Inspect every classified candidate", text)
+        self.assertIn("load the full local contract", text)
+
+    def test_development_observation_keeps_inventory_private_by_default(self) -> None:
+        text = (PROJECT_ROOT / "skills" / "feedback-loop" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("The normal development-evidence path is self-contained", text)
+        self.assertIn("--compact", text)
+        self.assertIn("> <private-inventory.json>", text)
 
 
 if __name__ == "__main__":

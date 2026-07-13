@@ -20,6 +20,8 @@ Outcome → authorized state boundary → evidence → proportionate claim
 - Persistence never upgrades authority or evidence freshness.
 - A Review Boundary Seed is a hypothesis, never an allowlist.
 - Boundary IDs/digests are runtime-generated from canonical mechanical state.
+- Compact projections route classification without duplicating full mechanical
+  fingerprints; private runtime evidence must not mutate captured task state.
 - Development evidence guides work but cannot support a completion claim.
 - Any relevant outcome, boundary, state, or environment change stales dependent
   evidence; v2 reruns the narrowest check instead of reusing it.
@@ -61,6 +63,10 @@ untracked, and explicitly declared ignored state. It creates a Candidate ID from
 workspace, layer, path, and fingerprint. Tracked candidates are split into Hunk
 IDs; untracked/declared-ignored artifacts are whole-content units. A semantic
 classification applies to exactly one runtime ID.
+
+Compact inventory keeps the routing ID, path/layer, and hunk header/ordinal but
+not redundant fingerprints. A tracked candidate with hunks is classified only
+through every Hunk ID; a candidate without hunks uses its Candidate ID.
 
 ### Claim Boundary and Review Boundary
 

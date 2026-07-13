@@ -36,11 +36,16 @@ Inventory all current candidates:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py inventory \
-  --compact --repository . --base <task-base> [...]
+  --compact --repository . --base <task-base> [...] \
+  > <private-inventory.json>
 ```
 
-For each candidate with hunks, classify every runtime `hunk_id`; otherwise
-classify its `candidate_id`. Pass exactly this shape through stdin:
+Keep the machine inventory out of the response and tool transcript. Query its
+digest, counts, paths, and one target set at a time. For
+`classification_target=hunks`, classify every runtime `hunk_id` and never the
+parent Candidate ID; for `classification_target=candidate`, classify its
+`candidate_id` once. The private inventory path must be outside participating
+worktrees or ignored and undeclared. Pass exactly this shape through stdin:
 
 ```json
 {
@@ -61,9 +66,10 @@ classify its `candidate_id`. Pass exactly this shape through stdin:
 Use each runtime target ID exactly once. `include-claim` requires `authorized`;
 `exclude-proven-unrelated` requires `not-applicable`. Never invent an ID or
 digest. Rationale is digest-bound semantic content. Choose a private boundary
-path outside participating worktrees; use an already-declared ignored Capsule
-location only when a continuity trigger requires persistence. Confirm once with
-the same capture arguments:
+path outside participating worktrees, or an ignored Handrails evidence path
+that is **not** passed through `--declare-ignored`. Never write machine evidence
+inside a declared ignored candidate; that would immediately stale the state.
+Confirm once with the same capture arguments:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py confirm \

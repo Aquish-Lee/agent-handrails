@@ -46,9 +46,22 @@ rationale creates a different semantic boundary. A caller therefore persists
 one confirmed boundary and later captures that exact artifact instead of
 reconfirming merely to reconstruct a discarded payload.
 
+An explicit boundary output path may be outside participating worktrees. Inside
+a participating worktree it must be ignored and must not fall within any
+declared ignored candidate. This prevents publishing machine evidence from
+changing the state it just confirmed. Ignored logs or `.scratch` content are not
+declared merely because they exist; declaration means their content belongs in
+the task boundary.
+
 Tracked files are classified by hunk. Untracked and explicitly declared ignored
 artifacts are classified by complete content. Ignored content is never scanned
 without an explicit declaration.
+
+Compact inventory is a classification-routing projection, not another source
+of mechanical truth. Candidate/Hunk IDs remain bound to full fingerprints in
+the runtime, while redundant fingerprint strings and canonical payloads stay out
+of ordinary agent context. Machine inventories and full boundaries should be
+redirected to private files and queried incrementally.
 
 ## Evidence and review ownership
 
@@ -70,6 +83,11 @@ necessary next step. A full Checkpoint is optional for every handrail and is
 expanded only on pause/block, cross-session or agent handoff, context risk,
 expensive/non-repeatable evidence, or explicit request. When persisted, rewrite
 the single `.scratch/<task-id>/STATE.md` Capsule. It is orientation only.
+
+High-assurance review starts with a risk map and inspects every candidate/hunk;
+risk changes inspection depth, never boundary coverage. Full contracts, record
+templates, broad diffs, and smell references load only when a specific question
+requires them.
 
 ## Safety
 

@@ -42,6 +42,14 @@ baseline.
 8. Classification rationale is canonical semantic content. Editing it creates a
    new boundary even when mechanical state and classification categories are
    unchanged.
+9. Compact inventory retains routing IDs and human-usable path/hunk context but
+   omits redundant fingerprints and canonical payloads. High-assurance review
+   keeps complete candidate coverage while expanding code and references
+   progressively from a risk map.
+10. Runtime evidence written inside a participating worktree must be ignored and
+    outside every declared ignored candidate. An ignored location is declared
+    only when its content is task state, not merely because Handrails stores
+    private evidence there.
 
 ## Consequences
 
@@ -49,7 +57,7 @@ baseline.
 - Review retains semantic judgment while boundary mechanics become repeatable
   and fail closed on missing classification, authorization, drift, or tampering.
 - Output and context cost fall because full records live in generated references
-  and appear only when continuity requires them.
+  and appear only when continuity requires them; machine payloads remain private.
 - Evidence cannot survive state changes in v2, even if a later reviewer believes
   the change was unrelated. This is intentionally conservative for the alpha.
 - Standalone skills that need Git state carry the generated runtime locally.

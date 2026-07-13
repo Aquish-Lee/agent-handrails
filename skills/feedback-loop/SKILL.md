@@ -16,9 +16,11 @@ reference: references/usable-loop-v2.md
 runtime: scripts/handrails_state.py
 -->
 
-Read [the local v2 contract](references/usable-loop-v2.md) for the complete
-development-evidence shape, authority rules, invalidation, and Checkpoint
-triggers.
+The normal development-evidence path is self-contained. Load
+[the local v2 contract](references/usable-loop-v2.md) only when the user asks for
+the full schema, a Checkpoint trigger applies, or these instructions cannot
+resolve a contract question. Do not inspect runtime source or `--help` unless
+execution fails.
 
 ## Start from the outcome
 
@@ -45,15 +47,21 @@ Before an important observation, capture state with:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py inventory \
-  --repository . --base <task-base>
+  --compact --repository . --base <task-base> \
+  > <private-inventory.json>
 ```
 
 Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
 In this source repository, use `runtime/handrails_state.py`.
 
-Use the Inventory Digest as the development observation's code-state binding.
-Declare ignored artifacts only when the task explicitly names them. Recapture
-after a relevant change; do not claim that an older observation remains fresh.
+Keep the machine inventory out of the response and tool transcript; read only
+the digest, conflicts, counts, and paths needed for the observation. Use the
+private path outside participating worktrees or in an ignored, undeclared
+Handrails evidence location. Use the Inventory Digest as the development
+observation's code-state binding. Declare ignored artifacts only when the task
+explicitly makes their content a candidate. Do not declare `.scratch` merely
+because private logs or Handrails evidence live there. Recapture after a
+relevant change; do not claim that an older observation remains fresh.
 
 Emit a Development Evidence Record with:
 

@@ -750,6 +750,36 @@ def _write_json_atomic(path: Path, value: Mapping[str, object]) -> None:
             temporary.unlink(missing_ok=True)
 
 
+def _validated_boundary_output_path(
+    path: Path,
+    boundary: Mapping[str, object],
+) -> Path:
+    destination = Path(os.path.abspath(os.fspath(path)))
+    payload = boundary.get("canonical_payload")
+    if not isinstance(payload, dict):  # pragma: no cover - internal invariant
+        raise BoundaryError("confirmed boundary is missing its canonical payload")
+    capture_spec = payload.get("capture_spec")
+    if not isinstance(capture_spec, dict):  # pragma: no cover - internal invariant
+        raise BoundaryError("confirmed boundary is missing its capture specification")
+    roots = [Path(str(value)) for value in capture_spec["participating_worktrees"]]
+    declared = [Path(str(value)) for value in capture_spec["declared_ignored"]]
+    containing_roots = [root for root in roots if destination.is_relative_to(root)]
+    if not containing_roots:
+        return destination
+    root = max(containing_roots, key=lambda value: len(value.parts))
+    relative = destination.relative_to(root)
+    if relative.parts and relative.parts[0] == ".git":
+        raise BoundaryError("boundary output cannot be written inside Git metadata")
+    if any(destination == item or destination.is_relative_to(item) for item in declared):
+        raise BoundaryError("boundary output overlaps a declared ignored candidate")
+    ignored = _git(root, "check-ignore", "--quiet", "--", relative.as_posix(), check=False)
+    if ignored.returncode != 0:
+        raise BoundaryError(
+            "boundary output inside a participating worktree must be ignored and undeclared"
+        )
+    return destination
+
+
 def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
     workspace_indexes = {
         str(workspace["path"]): index for index, workspace in enumerate(result["workspaces"])
@@ -760,7 +790,7 @@ def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
         hunks = [
             {
                 "hunk_id": hunk["hunk_id"],
-                "fingerprint": hunk["fingerprint"],
+                "ordinal": hunk["ordinal"],
                 "header": hunk["header"],
             }
             for hunk in candidate.get("hunks", [])
@@ -768,10 +798,10 @@ def _compact_inventory(result: Mapping[str, object]) -> dict[str, object]:
         candidates.append(
             {
                 "candidate_id": candidate["candidate_id"],
-                "fingerprint": candidate["fingerprint"],
                 "workspace_index": workspace_indexes[str(candidate["workspace"])],
                 "layer": candidate["layer"],
                 "path": candidate["path"],
+                "classification_target": "hunks" if hunks else "candidate",
                 "hunks": hunks,
             }
         )
@@ -836,7 +866,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 relevant_environment=_environment(arguments.environment),
             )
             if arguments.boundary_out is not None:
-                _write_json_atomic(arguments.boundary_out, result)
+                destination = _validated_boundary_output_path(arguments.boundary_out, result)
+                _write_json_atomic(destination, result)
         else:
             result = capture_boundary(_read_json(arguments.boundary))
     except BoundaryError as error:

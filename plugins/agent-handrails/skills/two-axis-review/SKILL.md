@@ -15,10 +15,11 @@ reference: references/usable-loop-v2.md
 runtime: scripts/handrails_state.py
 -->
 
-Read [the local v2 contract](references/usable-loop-v2.md) for exact Review
-Record fields and boundary rules. Use
-[the smell baseline](references/smell-baseline.md) as prompts, not a checklist
-that replaces judgment.
+The normal review path is self-contained. Do not load the full local contract,
+runtime source, runtime `--help`, or the complete
+[smell baseline](references/smell-baseline.md) by default. Open the contract only
+for a user-requested full schema or unresolved contract question; open targeted
+smell sections when the risk map points to them.
 
 ## Establish the review target
 
@@ -32,14 +33,37 @@ staged, unstaged, untracked, and explicitly declared ignored candidates:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py inventory \
-  --repository . --base <task-base> \
+  --compact --repository . --base <task-base> \
   [--participating-worktree <path>] \
   [--declare-ignored <path>] \
-  [--environment KEY=VALUE]
+  [--environment KEY=VALUE] \
+  > <private-inventory.json>
 ```
 
 Resolve `<this-skill-dir>` from this installed `SKILL.md`, not the project cwd.
 In this source repository, use `runtime/handrails_state.py`.
+
+Never print the complete inventory, canonical payload, full boundary, or an
+unbounded repository diff. Query the private inventory for its digest, counts,
+path/layer summary, conflicts, and one target set at a time.
+Do not declare `.scratch` merely because logs or Handrails artifacts live there.
+Declare an ignored artifact only when the task explicitly makes its content a
+candidate. A private machine-evidence path inside a worktree must be ignored but
+remain undeclared, otherwise writing evidence would stale the boundary.
+
+## Inspect progressively without losing coverage
+
+Build a risk map from the Outcome, repository guidance, worktree/status facts,
+diff/numstat and commit summaries, changed interfaces or data paths, and
+available tests. Use it to choose inspection depth, not to omit candidates.
+
+Inspect every classified candidate at least once on both Outcome Fit and
+Engineering Quality. For a tracked candidate, inspect every hunk; start with a
+targeted diff and adjacent tests, then widen into callers, shared invariants,
+generated artifacts, migrations, or operations when risk or evidence warrants
+it. Summarize machine-generated or lockfile changes mechanically instead of
+dumping their contents. Treat supplied test evidence as orientation and rerun
+only the checks needed to establish fresh review evidence.
 
 Classify every runtime Candidate/Hunk ID exactly once:
 
@@ -51,12 +75,15 @@ Classify every runtime Candidate/Hunk ID exactly once:
 Each logical unit needs a concrete rationale and `authorized |
 needs-authorization | not-applicable`. Excluded units require evidence of
 unrelatedness. Included task/scope-creep units require authorization. Mixed
-files are classified hunk by hunk.
+files are classified hunk by hunk. When compact inventory says
+`classification_target=hunks`, classify every `hunk_id`, never its parent
+Candidate ID; use the Candidate ID only for
+`classification_target=candidate`.
 
 Rationale is digest-bound semantic content. Choose a private boundary path
-outside participating worktrees; use an already-declared ignored Capsule
-location only when a continuity trigger requires persistence. Confirm once with
-the same capture parameters:
+outside participating worktrees, or an ignored Handrails evidence path that
+remains undeclared. Never write inside a declared ignored candidate. Confirm
+once with the same capture parameters:
 
 ```bash
 python <this-skill-dir>/scripts/handrails_state.py confirm \

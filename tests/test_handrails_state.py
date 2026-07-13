@@ -364,10 +364,17 @@ class BoundaryCliTests(HandrailsStateFixture):
         inventory = json.loads(inventory_completed.stdout)
         self.assertNotIn("canonical_payload", inventory)
         self.assertNotIn("capture_spec", inventory)
+        self.assertNotIn("fingerprint", json.dumps(inventory, sort_keys=True))
         self.assertEqual(len(inventory["candidates"]), 2)
         self.assertTrue(all(candidate["candidate_id"] for candidate in inventory["candidates"]))
         tracked = next(candidate for candidate in inventory["candidates"] if candidate["hunks"])
         self.assertTrue(tracked["hunks"][0]["hunk_id"])
+        self.assertEqual(tracked["classification_target"], "hunks")
+        self.assertEqual(tracked["hunks"][0]["ordinal"], 1)
+        artifact = next(
+            candidate for candidate in inventory["candidates"] if not candidate["hunks"]
+        )
+        self.assertEqual(artifact["classification_target"], "candidate")
 
         inventory_git_state = self.runtime.inventory_git_state(
             repository=self.repository,
@@ -489,6 +496,120 @@ class BoundaryCliTests(HandrailsStateFixture):
         self.assertEqual(completed.returncode, 2)
         self.assertIn("inventory digest", completed.stderr)
         self.assertEqual(boundary_path.read_text(encoding="utf-8"), "keep-existing\n")
+
+    def test_boundary_output_rejects_unignored_worktree_path(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        inventory = self.inventory(base="HEAD", relevant_environment={})
+        classifications = self.complete_classifications(inventory)
+        boundary_path = self.repository / "evidence" / "claim-boundary.json"
+        boundary_path.parent.mkdir()
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--boundary-out",
+                str(boundary_path),
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            input=json.dumps(classifications),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("must be ignored", completed.stderr)
+        self.assertFalse(boundary_path.exists())
+
+    def test_boundary_output_rejects_declared_ignored_candidate_path(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        write(self.repository / ".local" / "context.txt", "orientation\n")
+        inventory = self.inventory(
+            base="HEAD",
+            relevant_environment={},
+            declared_ignored=(self.repository / ".local",),
+        )
+        classifications = self.complete_classifications(inventory)
+        boundary_path = self.repository / ".local" / "claim-boundary.json"
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--boundary-out",
+                str(boundary_path),
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+                "--declare-ignored",
+                ".local",
+            ],
+            input=json.dumps(classifications),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("declared ignored candidate", completed.stderr)
+        self.assertFalse(boundary_path.exists())
+
+    def test_boundary_output_allows_ignored_undeclared_worktree_path(self) -> None:
+        write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
+        (self.repository / ".local").mkdir()
+        inventory = self.inventory(base="HEAD", relevant_environment={})
+        classifications = self.complete_classifications(inventory)
+        boundary_path = self.repository / ".local" / "claim-boundary.json"
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(RUNTIME_PATH),
+                "confirm",
+                "--compact",
+                "--kind",
+                "claim",
+                "--classifications",
+                "-",
+                "--boundary-out",
+                str(boundary_path),
+                "--repository",
+                str(self.repository),
+                "--base",
+                "HEAD",
+            ],
+            input=json.dumps(classifications),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        self.assertTrue(boundary_path.is_file())
+        compact = json.loads(completed.stdout)
+        captured = self.runtime.capture_boundary(
+            json.loads(boundary_path.read_text(encoding="utf-8"))
+        )
+        self.assertEqual(captured["boundary_digest"], compact["boundary_digest"])
 
 
 if __name__ == "__main__":

@@ -61,6 +61,16 @@ drift, or digest mismatch fail closed. Classification rationale is digest-bound
 semantic content, so callers reuse a persisted boundary rather than reconfirming
 it with newly worded rationale.
 
+Compact inventory keeps Candidate/Hunk routing IDs, paths, layers, ordinals,
+headers, and conflicts while omitting redundant fingerprint strings. Store the
+machine projection privately, query it incrementally, and let a risk map control
+inspection depth without reducing complete boundary coverage.
+
+Private machine evidence inside a participating worktree must be ignored and
+must remain outside declared ignored candidates. Do not declare the `.scratch`
+root merely because logs or Capsules exist there: declaring it makes its bytes
+part of the boundary, so a later log write would stale the record.
+
 ## Evidence ownership
 
 Feedback Loop's `observed` development evidence guides the next engineering

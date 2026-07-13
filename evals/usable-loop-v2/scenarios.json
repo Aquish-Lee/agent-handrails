@@ -54,7 +54,9 @@
         "both workspace identities captured",
         "all candidates classified",
         "one deterministic Review Boundary",
-        "Review Record distinguishes child and integration state"
+        "Review Record distinguishes child and integration state",
+        "machine payloads remain private",
+        "risk-based inspection covers every candidate without a full inventory or diff dump"
       ],
       "critical": true
     },
@@ -111,6 +113,8 @@
     "relevant_drift_block_rate": 1.0,
     "child_integration_state_confusions": 0,
     "deterministic_boundary_digest": true,
+    "review_machine_payload_dumps": 0,
+    "review_candidate_coverage_rate": 1.0,
     "microtask_max_handrails": 1,
     "fact_max_lines": 12,
     "scoped_task_max_lines": 30,

@@ -39,6 +39,26 @@ Compare fact and scoped-task runs to the same task performed with native Codex
 and no Agent Handrails skill. Use medians across comparable successful runs.
 Exclude cached input tokens and disclose missing telemetry rather than estimating.
 
+For high-assurance review, also record non-cached input tokens, whether the run
+was fresh or resumed, changed-file/hunk counts, and which references were
+loaded. Patch risk and size vary too much for the fact/scoped ratio gate, so
+compare the same candidate before and after instruction/runtime changes.
+
+## Review context discipline
+
+- Machine inventories, canonical payloads, full boundaries, and generated
+  classification JSON stay in private files rather than the transcript.
+- Compact inventory may expose IDs, paths, layers, hunk ordinals/headers, and
+  conflicts, but not redundant candidate/hunk fingerprints.
+- A risk map controls inspection depth; every candidate/hunk still receives
+  semantic coverage and the runtime still enforces complete classification.
+- Inspect targeted diffs and adjacent call paths incrementally. Do not emit a
+  full-repository diff or whole generated file merely for convenience.
+- Full contract/templates and smell references load only for a specific need.
+- A context reduction is accepted only when Review Record completeness,
+  findings quality, fail-closed behavior, and child/integration distinction are
+  preserved.
+
 ## Cutover
 
 Run every critical scenario at least three times across new sessions. Complete

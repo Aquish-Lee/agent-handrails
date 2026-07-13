@@ -108,6 +108,17 @@
       "digest": "sha256",
       "caller_supplied_digest": "forbidden",
       "compact_boundary_persistence": "explicit-boundary-out",
+      "boundary_output_inside_worktree": "ignored-and-not-declared-only",
+      "compact_inventory_omits": [
+        "canonical-payload",
+        "capture-spec",
+        "candidate-fingerprint",
+        "hunk-fingerprint"
+      ],
+      "compact_classification_target": {
+        "tracked-candidate-with-hunks": "every-hunk-id",
+        "candidate-without-hunks": "candidate-id"
+      },
       "rationale_binding": "canonical-semantic-content",
       "confirm_requires": [
         "complete-nonoverlapping-classification",

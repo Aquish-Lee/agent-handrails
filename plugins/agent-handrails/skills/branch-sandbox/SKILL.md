@@ -47,7 +47,8 @@ git status --short
 git branch --show-current
 git rev-parse HEAD
 git worktree list
-python <this-skill-dir>/scripts/handrails_state.py inventory --repository . --base HEAD
+python <this-skill-dir>/scripts/handrails_state.py inventory \
+  --compact --repository . --base HEAD > <private-inventory.json>
 ```
 
 Resolve `<this-skill-dir>` from this installed `SKILL.md`, not from the project
@@ -56,7 +57,12 @@ is the canonical equivalent.
 
 The runtime inventories staged, unstaged, committed-since-base, and untracked
 state. Add ignored artifacts only with explicit `--declare-ignored` arguments.
-Never infer or scan ignored caches, secrets, or local files.
+Never infer or scan ignored caches, secrets, or local files. Keep the machine
+inventory private and query only its digest, conflicts, counts, and path/layer
+summary for the Work Boundary decision. The private path must be outside
+participating worktrees or ignored and undeclared. Do not declare `.scratch`
+merely because Handrails logs live there; declarations are only for ignored
+content the task explicitly makes a candidate.
 
 If a Review Boundary Seed exists, consume it as a hypothesis. Record actual
 task-start state and the delta from the seed; do not convert expected paths into
