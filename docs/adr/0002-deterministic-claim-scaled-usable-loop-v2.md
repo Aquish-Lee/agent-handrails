@@ -52,7 +52,10 @@ baseline.
     private evidence there.
 11. The compact inventory is self-describing. Review inspects one changed source
     at a time with bounded context/output and a private target-coverage ledger,
-    avoiding repeated broad diffs while retaining every Candidate/Hunk.
+    avoiding repeated broad diffs while retaining every Candidate/Hunk. Compact
+    form is not permission to dump the catalog: stdout may expose at most one
+    target set, while bulk ID-to-classification transforms stay in private files
+    and emit only aggregate counts or digests.
 
 ## Consequences
 

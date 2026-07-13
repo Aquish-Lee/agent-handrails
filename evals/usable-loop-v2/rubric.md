@@ -48,6 +48,10 @@ compare the same candidate before and after instruction/runtime changes.
 
 - Machine inventories, canonical payloads, full boundaries, and generated
   classification JSON stay in private files rather than the transcript.
+- Serializing `candidates`, printing each Candidate/Hunk in a loop, or echoing
+  all generated classification units counts as a full machine-payload dump,
+  including when the source is compact inventory. A query exposes at most one
+  target set; private transforms may print only aggregate counts or digests.
 - Compact inventory may expose IDs, paths, layers, hunk ordinals/headers, and
   conflicts, but not redundant candidate/hunk fingerprints.
 - A risk map controls inspection depth; every candidate/hunk still receives

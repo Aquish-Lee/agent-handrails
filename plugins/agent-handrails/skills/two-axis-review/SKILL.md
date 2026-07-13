@@ -47,6 +47,13 @@ In this source repository, use `runtime/handrails_state.py`.
 Never print the complete inventory, canonical payload, full boundary, or an
 unbounded repository diff. Query the private inventory for its digest, counts,
 path/layer summary, conflicts, and one target set at a time.
+Never serialize `candidates` or loop over all Candidate/Hunk records to stdout,
+even from compact inventory. A command may expose a bounded path/layer/count
+summary or at most one target set per command. Transform IDs privately: scripts
+may read every record to build the ledger or classifications, but must write the
+classification file without echoing its logical units; print only aggregate
+counts or digests. Printing each record in one loop is a full inventory dump and
+fails the review-context gate.
 Its top-level compact fields are `contract`, `record`, `schema_version`,
 `base_revision`, `inventory_digest`, `counts`, `workspaces`, and `candidates`;
 do not probe for fields from the full inventory.

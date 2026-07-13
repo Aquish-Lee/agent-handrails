@@ -80,6 +80,9 @@ Classification input has top-level `task_id`, `outcome_revision`,
 may additionally supply `boundary_seed_digest`.
 Keep machine inventories and full boundaries in private files; query
 only the digest, counts, paths, and target IDs needed for the decision.
+Never serialize all candidates or loop over Candidate/Hunk records to
+stdout, even in compact form. Expose at most one target set per command
+and write generated classifications privately without echoing units.
 A private path is outside participating worktrees or ignored but not
 declared as a Boundary candidate. Never write machine evidence inside
 a declared ignored artifact; that would immediately stale the state.

@@ -212,6 +212,11 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("--compact", text)
         self.assertIn("> <private-inventory.json>", text)
         self.assertIn("Never print the complete inventory", text)
+        self.assertIn(
+            "Never serialize `candidates` or loop over all Candidate/Hunk records to stdout", text
+        )
+        self.assertIn("at most one target set per command", text)
+        self.assertIn("classification file without echoing its logical units", text)
         self.assertIn("risk map", text)
         self.assertIn("Inspect every classified candidate", text)
         self.assertIn("load the full local contract", text)
