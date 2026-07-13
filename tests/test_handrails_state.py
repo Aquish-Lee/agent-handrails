@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_PATH = PROJECT_ROOT / "runtime" / "handrails_state.py"
 
@@ -74,9 +73,9 @@ class HandrailsStateFixture(unittest.TestCase):
     ) -> dict[str, object]:
         classifications = []
         for candidate in inventory["candidates"]:
-            target_ids = [
-                hunk["hunk_id"] for hunk in candidate.get("hunks", [])
-            ] or [candidate["candidate_id"]]
+            target_ids = [hunk["hunk_id"] for hunk in candidate.get("hunks", [])] or [
+                candidate["candidate_id"]
+            ]
             for target_id in target_ids:
                 classifications.append(
                     {
@@ -119,9 +118,7 @@ class InventoryTests(HandrailsStateFixture):
             all(hunk["hunk_id"].startswith("hunk:sha256:") for hunk in tracked["hunks"])
         )
         untracked = next(
-            candidate
-            for candidate in first["candidates"]
-            if candidate["layer"] == "untracked"
+            candidate for candidate in first["candidates"] if candidate["layer"] == "untracked"
         )
         self.assertEqual(untracked["hunks"], [])
         self.assertEqual(untracked["kind"], "artifact")
@@ -131,9 +128,7 @@ class InventoryTests(HandrailsStateFixture):
         write(self.repository / ".local" / "declared.txt", "declared\n")
         write(self.repository / ".local" / "secret.txt", "secret\n")
 
-        inventory = self.inventory(
-            declared_ignored=(self.repository / ".local" / "declared.txt",)
-        )
+        inventory = self.inventory(declared_ignored=(self.repository / ".local" / "declared.txt",))
         serialized = json.dumps(inventory, sort_keys=True)
 
         self.assertIn(".local/declared.txt", serialized)
@@ -221,9 +216,7 @@ class BoundaryConfirmationTests(HandrailsStateFixture):
         write(self.repository / "tracked.txt", "ONE\ntwo\nthree\nfour\nfive\n")
         inventory = self.inventory()
         classifications = self.complete_classifications(inventory)
-        classifications["logical_units"].append(
-            dict(classifications["logical_units"][0])
-        )
+        classifications["logical_units"].append(dict(classifications["logical_units"][0]))
 
         with self.assertRaisesRegex(self.runtime.BoundaryError, "more than once"):
             self.runtime.confirm_boundary(

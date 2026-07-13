@@ -19,7 +19,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
-
 CONTRACT_ID = "usable-loop/v2"
 SCHEMA_VERSION = 2
 AUTHORIZATION_STATES = {"authorized", "needs-authorization", "not-applicable"}
@@ -56,9 +55,7 @@ def digest_json(value: object) -> str:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
-        "+00:00", "Z"
-    )
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _git(
@@ -78,16 +75,13 @@ def _git(
     if check and completed.returncode != 0:
         detail = completed.stderr.decode("utf-8", errors="replace").strip()
         raise BoundaryError(
-            f"git {' '.join(arguments)} failed in {repository}: "
-            f"{detail or completed.returncode}"
+            f"git {' '.join(arguments)} failed in {repository}: {detail or completed.returncode}"
         )
     return completed
 
 
 def _git_text(repository: Path, *arguments: str, check: bool = True) -> str:
-    return _git(repository, *arguments, check=check).stdout.decode(
-        "utf-8", errors="strict"
-    ).strip()
+    return _git(repository, *arguments, check=check).stdout.decode("utf-8", errors="strict").strip()
 
 
 def _root(path: Path) -> Path:
@@ -96,9 +90,7 @@ def _root(path: Path) -> Path:
 
 
 def _resolve(repository: Path, revision: str) -> str:
-    completed = _git(
-        repository, "rev-parse", "--verify", f"{revision}^{{commit}}", check=False
-    )
+    completed = _git(repository, "rev-parse", "--verify", f"{revision}^{{commit}}", check=False)
     if completed.returncode != 0:
         detail = completed.stderr.decode("utf-8", errors="replace").strip()
         raise BoundaryError(f"cannot resolve commit {revision!r}: {detail}")
@@ -107,9 +99,7 @@ def _resolve(repository: Path, revision: str) -> str:
 
 def _nul_paths(output: bytes) -> list[str]:
     return sorted(
-        item.decode("utf-8", errors="surrogateescape")
-        for item in output.split(b"\0")
-        if item
+        item.decode("utf-8", errors="surrogateescape") for item in output.split(b"\0") if item
     )
 
 
@@ -142,9 +132,7 @@ def _prepare_roots(
     common = _common_dir(primary)
     for root in roots:
         if _common_dir(root) != common:
-            raise BoundaryError(
-                f"participating worktree belongs to another repository: {root}"
-            )
+            raise BoundaryError(f"participating worktree belongs to another repository: {root}")
     return primary, roots, common
 
 
@@ -162,9 +150,7 @@ def _artifact_entries(path: Path) -> list[dict[str, str]]:
             }
         ]
     if stat.S_ISREG(mode):
-        return [
-            {"path": ".", "kind": "file", "digest": digest_bytes(path.read_bytes())}
-        ]
+        return [{"path": ".", "kind": "file", "digest": digest_bytes(path.read_bytes())}]
     if not stat.S_ISDIR(mode):
         raise BoundaryError(f"unsupported artifact type: {path}")
     entries: list[dict[str, str]] = []
@@ -265,9 +251,7 @@ def _tracked_candidates(
         selector = []
     else:  # pragma: no cover - internal invariant
         raise AssertionError(layer)
-    paths = _nul_paths(
-        _git(workspace, "diff", *selector, "--name-only", "-z", "--").stdout
-    )
+    paths = _nul_paths(_git(workspace, "diff", *selector, "--name-only", "-z", "--").stdout)
     result: list[dict[str, object]] = []
     for path in paths:
         patch = _git(
@@ -363,8 +347,7 @@ def inventory_git_state(
     base_revision = _resolve(primary, base)
     environment = dict(sorted((relevant_environment or {}).items()))
     if not all(
-        isinstance(key, str) and isinstance(value, str)
-        for key, value in environment.items()
+        isinstance(key, str) and isinstance(value, str) for key, value in environment.items()
     ):
         raise BoundaryError("environment keys and values must be strings")
     ignored = _declared_ignored(primary, roots, declared_ignored)
@@ -372,9 +355,7 @@ def inventory_git_state(
     workspaces: list[dict[str, object]] = []
     for root in roots:
         exact_revision = _resolve(root, "HEAD")
-        branch_process = _git(
-            root, "symbolic-ref", "--quiet", "--short", "HEAD", check=False
-        )
+        branch_process = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD", check=False)
         branch = (
             branch_process.stdout.decode("utf-8").strip()
             if branch_process.returncode == 0
@@ -403,13 +384,8 @@ def inventory_git_state(
         untracked = _nul_paths(
             _git(root, "ls-files", "--others", "--exclude-standard", "-z", "--").stdout
         )
-        candidates.extend(
-            _artifact_candidate(root, path, "untracked") for path in untracked
-        )
-    candidates.extend(
-        _artifact_candidate(root, path, "declared-ignored")
-        for root, path in ignored
-    )
+        candidates.extend(_artifact_candidate(root, path, "untracked") for path in untracked)
+    candidates.extend(_artifact_candidate(root, path, "declared-ignored") for root, path in ignored)
     candidates.sort(
         key=lambda item: (
             str(item["workspace"]),
@@ -656,9 +632,7 @@ def _inventory_from_capture_spec(spec: Mapping[str, object]) -> dict[str, object
     return inventory_git_state(
         repository=Path(str(spec["repository"])),
         base=str(spec["base"]),
-        participating_worktrees=tuple(
-            Path(str(item)) for item in spec["participating_worktrees"]
-        ),
+        participating_worktrees=tuple(Path(str(item)) for item in spec["participating_worktrees"]),
         declared_ignored=tuple(Path(str(item)) for item in spec["declared_ignored"]),
         relevant_environment=dict(spec["relevant_environment"]),
     )
@@ -698,9 +672,7 @@ def _add_capture_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--base", default="HEAD")
     parser.add_argument("--declare-ignored", action="append", type=Path, default=[])
-    parser.add_argument(
-        "--participating-worktree", action="append", type=Path, default=[]
-    )
+    parser.add_argument("--participating-worktree", action="append", type=Path, default=[])
     parser.add_argument("--environment", action="append", default=[])
 
 

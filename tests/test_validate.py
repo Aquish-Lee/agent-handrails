@@ -6,7 +6,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = PROJECT_ROOT / "scripts" / "validate.py"
 SPEC = importlib.util.spec_from_file_location("validate", MODULE_PATH)
@@ -30,8 +29,7 @@ class MarkdownFilesTests(unittest.TestCase):
             )
 
             discovered = {
-                path.relative_to(root).as_posix()
-                for path in validate.markdown_files(root)
+                path.relative_to(root).as_posix() for path in validate.markdown_files(root)
             }
 
             self.assertEqual(discovered, {"README.md", "docs/guide.md"})

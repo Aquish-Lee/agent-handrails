@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a user-facing improvement that preserves explicit, atomic handrails
+title: "[Feature]: "
+labels:
+  - needs-triage
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and user outcome
+      description: What real development problem exists, and what observable result should improve?
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current workaround or evidence
+      description: Describe current behavior, dogfood evidence, and why existing handrails are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Focus on outcome and acceptance; implementation detail is optional.
+    validations:
+      required: true
+  - type: textarea
+    id: philosophy
+    attributes:
+      label: Handrails fit
+      description: Explain how this remains explicit, independently useful, proportional, and recoverable.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and verification signals
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing Issues, Discussions, and ADRs.
+          required: true
+        - label: I understand maintainers may route contract-level changes to a Design Proposal.
+          required: true

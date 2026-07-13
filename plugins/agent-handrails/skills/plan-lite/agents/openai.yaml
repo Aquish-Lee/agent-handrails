@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Lite"
+  short_description: "Create a compact, verifiable implementation strategy"
+  default_prompt: "Use $plan-lite to create a proportional implementation plan with verification and rollback."
+policy:
+  allow_implicit_invocation: false

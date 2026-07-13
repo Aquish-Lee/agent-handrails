@@ -1,0 +1,6 @@
+interface:
+  display_name: "Branch Sandbox"
+  short_description: "Isolate risky work with a reversible workspace boundary"
+  default_prompt: "Use $branch-sandbox to choose and establish the smallest safe isolation boundary for this task."
+policy:
+  allow_implicit_invocation: false

@@ -2,24 +2,52 @@
 
 All notable changes to Agent Handrails are recorded here.
 
-## [0.1.0] - Unreleased
+## [0.1.0-alpha.2] - 2026-07-13
 
 ### Added
 
-- Seven explicit, independently deployable engineering handrails with ambient invocation disabled.
-- The versioned `usable-loop/v1` contract: Outcome Reference, Work/Review Boundary, Code State Token, Evidence Record, Claim Record, and conversation-first Checkpoint.
-- Task-scoped Git review across committed, staged, unstaged, untracked, explicitly declared ignored artifacts, and participating worktrees.
-- A pure-standard-library, read-only Git state helper with deterministic content fingerprints and no semantic relevance classification.
-- One optional, ignored Local Capsule for cross-session continuity, compactly rewritten instead of accumulating phase documents.
-- Content-addressed complete bundles with a single atomic `current` activation pointer, retained rollback bundles, guarded legacy migration, and Codex discovery links.
-- Python 3.10 and 3.14 validation CI, contract tests, Git/worktree fixtures, failure-injected deployment tests, and clean temporary installation checks.
+- `usable-loop/v2` with `fact`, `scoped-task`, and `high-assurance` claim routes.
+- Deterministic `inventory → confirm → capture` Boundary runtime with stable
+  Candidate/Hunk IDs, canonical SHA-256, authorization checks, conflict/drift
+  blocking, and no caller-supplied digest.
+- Separate Development Evidence, Claim Evidence, formal Review Record, and
+  shared optional Checkpoint ownership.
+- Generated self-contained v2 contract/runtime projections for standalone Skills.
+- Tracked dogfood scenarios/rubric with ignored local result storage.
+- Codex marketplace/plugin package and standard Raw Skills distribution.
+- XDG default Raw installation, legacy managed-layout retention, ownership-
+  proven uninstall, explicit purge, and reinstall from retained bundles.
+- Governance, support, security, conduct, contribution, Issue/PR templates,
+  dependency locking, Ruff/Bandit, Dependabot, and pinned advisory Actions.
+
+### Changed
+
+- All seven Skills now use standard Agent Skills frontmatter and provide complete
+  Codex interface metadata with implicit invocation disabled.
+- A current user request defaults to authoritative when scope/permission/source
+  do not conflict; agent-derived interpretation remains provisional.
+- Direct results are compact by default; full Checkpoints appear only for a
+  continuity trigger or explicit request.
+- Hosted CI is manual/advisory and does not block alpha publication.
+
+### Removed
+
+- Hidden review dependency for narrow verification.
+- Feedback-to-verify evidence ownership ambiguity and verify-to-feedback backflow.
+- Evidence reuse after a boundary/state/environment change in v2.
+- Non-standard `disable-model-invocation` and `argument-hint` Skill frontmatter.
 
 ### Known limitations
 
-- Git is the only implemented VCS provider. Jujutsu integration is deferred.
-- Linux is the verified deployment target; Windows and macOS are not yet verified release claims.
-- Codex is the target agent surface. Other agents may interpret frontmatter and symlink discovery differently.
-- Submodules, unborn `HEAD`, multi-repository tasks, network filesystems, and sudden-power-loss durability are not supported release claims.
-- Boundary digests are reproducibility fingerprints, not security attestations.
-- No orchestrator, automatic handrail selection, persistent evidence service, telemetry, or automatic bundle garbage collection is included.
-- Real Codex installation, five-scenario dogfood, an external-project loop, and GitHub release publication remain gates before the stable tag.
+- Linux, Git, Python 3.10+, and Codex are the supported baseline.
+- Jujutsu, Windows, macOS, other agents, submodules, and unborn `HEAD` remain unverified.
+- Real-project dogfood continues after publication; this is not stable `v0.1.0`.
+
+## [0.1.0-alpha.1] - 2026-07-13
+
+Historical pre-merge preview and rollback baseline for `usable-loop/v1`.
+Superseded by alpha.2 for normal installation; its tag and v1 semantics remain
+immutable.
+
+[0.1.0-alpha.2]: https://github.com/Aquish-Lee/agent-handrails/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
+[0.1.0-alpha.1]: https://github.com/Aquish-Lee/agent-handrails/releases/tag/v0.1.0-alpha.1

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Spec Lite"
+  short_description: "Capture converged intent as a lightweight outcome contract"
+  default_prompt: "Use $spec-lite to turn the converged intent into a concise, testable outcome contract."
+policy:
+  allow_implicit_invocation: false

@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
-import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = PROJECT_ROOT / "scripts" / "eval_v2.py"

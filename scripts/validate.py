@@ -13,7 +13,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / "skills"
 CONTRACT_PATH = Path("contracts/usable-loop-v2.json")
@@ -34,12 +33,26 @@ RUNTIME_SKILLS = {
     "verify-before-claim",
 }
 REQUIRED_FILES = {
+    ".agents/plugins/marketplace.json",
+    ".github/ISSUE_TEMPLATE/bug.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/design.yml",
+    ".github/ISSUE_TEMPLATE/feature.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/dependabot.yml",
     ".github/workflows/validate.yml",
     "AGENTS.md",
+    "CODE_OF_CONDUCT.md",
     "CHANGELOG.md",
+    "CONTRIBUTING.md",
     "CONTEXT.md",
+    "GOVERNANCE.md",
     "LICENSE",
+    "MAINTAINERS.md",
     "README.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "THIRD_PARTY_NOTICES.md",
     "contracts/usable-loop-v1.json",
     "contracts/usable-loop-v2.json",
     "docs/adr/0001-versioned-usable-loop-contract.md",
@@ -51,11 +64,17 @@ REQUIRED_FILES = {
     "evals/usable-loop-v2/rubric.md",
     "evals/usable-loop-v2/scenarios.json",
     "playbooks/practical-development-loop.md",
+    "plugins/agent-handrails/.codex-plugin/plugin.json",
+    "pyproject.toml",
+    "requirements-dev.txt",
     "runtime/git_state.py",
     "runtime/handrails_state.py",
-    "scripts/render_contract.py",
     "scripts/eval_v2.py",
+    "scripts/quality.py",
+    "scripts/render_contract.py",
+    "scripts/render_plugin.py",
     "scripts/sync_skills.py",
+    "uv.lock",
 }
 V1_IMMUTABLE_HASHES = {
     "contracts/usable-loop-v1.json": "6a2455a83ba7a83bdc5b369cf1154d0462a2c8b5a2f8dc3b8edd3754545a5db8",
@@ -68,9 +87,7 @@ STALE_TERMS = (
     "1% chance means invoke",
     "Manual-only",
 )
-CONTRACT_BLOCK_PATTERN = re.compile(
-    r"<!-- handrails-contract\n(?P<body>.*?)\n-->", re.DOTALL
-)
+CONTRACT_BLOCK_PATTERN = re.compile(r"<!-- handrails-contract\n(?P<body>.*?)\n-->", re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -243,9 +260,7 @@ def skill_errors(root: Path = ROOT) -> list[ValidationIssue]:
             "contract": CONTRACT_ID,
             "role": contract["skills"][name]["role"],
             "reference": "references/usable-loop-v2.md",
-            "runtime": (
-                "scripts/handrails_state.py" if name in RUNTIME_SKILLS else "none"
-            ),
+            "runtime": ("scripts/handrails_state.py" if name in RUNTIME_SKILLS else "none"),
         }
         if binding != expected_binding:
             errors.append(issue("contract-binding", skill_path, str(binding)))
@@ -285,10 +300,25 @@ def generated_projection_errors(root: Path = ROOT) -> list[ValidationIssue]:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     contract = module.load_contract()
-    return [
+    errors = [
         issue("generated-projection-drift", path, "run render_contract.py --apply")
         for path in module.check(module.generated_files(contract))
     ]
+    plugin_script = root / "scripts" / "render_plugin.py"
+    plugin_spec = importlib.util.spec_from_file_location("render_plugin_validator", plugin_script)
+    if plugin_spec is None or plugin_spec.loader is None:
+        return errors + [issue("plugin-loader", plugin_script, "cannot load generator")]
+    plugin_module = importlib.util.module_from_spec(plugin_spec)
+    plugin_spec.loader.exec_module(plugin_module)
+    for detail in plugin_module.drift():
+        errors.append(
+            issue(
+                "generated-plugin-drift",
+                root / "plugins" / "agent-handrails",
+                detail,
+            )
+        )
+    return errors
 
 
 def repository_errors(root: Path = ROOT) -> list[ValidationIssue]:

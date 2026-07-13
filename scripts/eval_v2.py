@@ -9,7 +9,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SUITE_PATH = ROOT / "evals" / "usable-loop-v2" / "scenarios.json"
 RESULT_ROOT = ROOT / ".scratch" / "dogfood-v2"
@@ -59,9 +58,7 @@ def run_template(suite: dict[str, object], run_id: str) -> dict[str, object]:
             }
             for scenario_id in scenario_ids
         },
-        "direct_entry_results": {
-            skill: [] for skill in sorted(SKILLS)
-        },
+        "direct_entry_results": {skill: [] for skill in sorted(SKILLS)},
         "gate_summary": {},
     }
 
@@ -90,7 +87,10 @@ def main() -> int:
             print(f"{scenario['id']}: ${scenario['target_skill']}")
         return 0
     run_id = arguments.init_run
-    if not run_id or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for character in run_id):
+    if not run_id or any(
+        character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+        for character in run_id
+    ):
         print("RUN_ID may contain only letters, digits, hyphen, and underscore", file=sys.stderr)
         return 2
     destination = RESULT_ROOT / run_id / "result.json"

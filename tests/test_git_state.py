@@ -9,7 +9,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 GIT_STATE_PATH = PROJECT_ROOT / "runtime" / "git_state.py"
 
@@ -262,14 +261,10 @@ class GitStateCaptureTests(GitStateFixture):
         self.assertEqual(token["review_boundary_digest"], "sha256:boundary")
         self.assertEqual(token["relevant_environment"], {"platform": "linux"})
         contract = json.loads(
-            (PROJECT_ROOT / "contracts" / "usable-loop-v1.json").read_text(
-                encoding="utf-8"
-            )
+            (PROJECT_ROOT / "contracts" / "usable-loop-v1.json").read_text(encoding="utf-8")
         )
         self.assertTrue(
-            set(contract["records"]["code-state-token"]["required_fields"]).issubset(
-                token
-            )
+            set(contract["records"]["code-state-token"]["required_fields"]).issubset(token)
         )
 
 

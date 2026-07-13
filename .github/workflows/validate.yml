@@ -1,48 +1,50 @@
-name: Validate
+name: Advisory validation
 
+# Hosted CI is intentionally manual/advisory while repository billing is unavailable.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: validate-${{ github.workflow }}-${{ github.ref }}
+  group: advisory-validate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.14"]
     steps:
       - name: Check out source
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install validation dependency
-        run: python -m pip install PyYAML==6.0.3
+      - name: Install locked top-level development tools
+        run: python -m pip install -r requirements-dev.txt
 
-      - name: Run tests
-        run: python -m unittest discover -s tests -v
+      - name: Run local quality gate
+        run: python scripts/quality.py --skip-official-skills
 
-      - name: Validate repository
-        run: python scripts/validate.py
+      - name: Run official Agent Skills validator
+        if: matrix.python-version != '3.10'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for skill in skills/*; do
+            agentskills validate "$skill"
+          done
 
-      - name: Smoke Git state runtime
-        run: python runtime/git_state.py --help
-
-      - name: Verify clean bundle install and discovery
+      - name: Verify clean Raw install, uninstall, and reinstall
         shell: bash
         run: |
           set -euo pipefail
@@ -50,8 +52,11 @@ jobs:
           links="$RUNNER_TEMP/agent-handrails-codex"
           python scripts/sync_skills.py --apply --target "$target" --codex-link-root "$links"
           python scripts/sync_skills.py --check --target "$target" --codex-link-root "$links"
-          current="$(readlink -f "$target/.agent-handrails/current")"
-          test -z "$(find "$current" -name '__pycache__' -o -name '*.pyc' -o -name '*.pyo')"
+          python scripts/sync_skills.py --uninstall --target "$target"
+          test -d "$target/.agent-handrails/bundles"
+          python scripts/sync_skills.py --apply --target "$target" --codex-link-root "$links"
+          python scripts/sync_skills.py --uninstall --purge --target "$target"
+          test ! -e "$target/.agent-handrails"
 
       - name: Confirm tracked source stayed clean
         run: test -z "$(git status --porcelain --untracked-files=no)"

@@ -20,14 +20,12 @@ from typing import Callable, Iterator, Mapping, Protocol
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = PROJECT_ROOT / "skills"
-DEFAULT_TARGET = Path(
-    os.environ.get("AGENT_HANDRAILS_SKILLS_DIR", "~/Workspace/Skills")
-).expanduser()
 DEFAULT_CODEX_LINK_ROOT = Path("~/.agents/skills").expanduser()
 RUNTIME_ROOT = PROJECT_ROOT / "runtime"
 MANAGED_DIR_NAME = ".agent-handrails"
 LAYOUT_SCHEMA = 1
 LAYOUT_FILE = "layout.json"
+OWNERSHIP_FILE = "ownership.json"
 BUNDLES_DIR = "bundles"
 CURRENT_LINK = "current"
 TRANSACTIONS_DIR = "transactions"
@@ -50,6 +48,26 @@ SKILL_NAMES = (
 Failpoint = Callable[[str], None]
 
 
+def choose_default_target(
+    *,
+    environment: Mapping[str, str] | None = None,
+    home: Path | None = None,
+) -> Path:
+    environment = os.environ if environment is None else environment
+    home = Path.home() if home is None else Path(home)
+    override = environment.get("AGENT_HANDRAILS_SKILLS_DIR")
+    if override:
+        return Path(override).expanduser()
+    legacy = home / "Workspace" / "Skills"
+    if (legacy / MANAGED_DIR_NAME).is_dir():
+        return legacy
+    data_home = Path(environment.get("XDG_DATA_HOME", home / ".local" / "share"))
+    return data_home / "agent-handrails" / "skills"
+
+
+DEFAULT_TARGET = choose_default_target()
+
+
 class DigestWriter(Protocol):
     def update(self, data: bytes, /) -> None: ...
 
@@ -66,6 +84,12 @@ class ApplyResult:
     bundle_id: str
     previous_bundle_id: str | None
     mode: str
+
+
+@dataclass(frozen=True)
+class UninstallResult:
+    bundle_id: str
+    purged: bool
 
 
 @dataclass(frozen=True)
@@ -110,6 +134,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="install, migrate, or atomically activate a complete managed bundle",
     )
+    mode.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="remove only manifest-owned public/discovery links and retain bundles",
+    )
+    parser.add_argument(
+        "--purge",
+        action="store_true",
+        help="with --uninstall, also delete verified retained bundles and managed data",
+    )
     parser.add_argument(
         "--target",
         type=Path,
@@ -119,10 +153,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--codex-link-root",
         type=Path,
-        help=(
-            "also check/create Codex discovery symlinks, normally "
-            f"{DEFAULT_CODEX_LINK_ROOT}"
-        ),
+        help=(f"also check/create Codex discovery symlinks, normally {DEFAULT_CODEX_LINK_ROOT}"),
     )
     return parser.parse_args()
 
@@ -151,9 +182,7 @@ def ignore_generated_python_artifacts(
     names: list[str],
 ) -> set[str]:
     return {
-        name
-        for name in names
-        if name == "__pycache__" or Path(name).suffix in {".pyc", ".pyo"}
+        name for name in names if name == "__pycache__" or Path(name).suffix in {".pyc", ".pyo"}
     }
 
 
@@ -217,9 +246,7 @@ def validate_source(
         match = re.search(r"(?m)^name:\s*([^\n]+)$", skill_text)
         declared = match.group(1).strip().strip('"') if match else None
         if declared != name:
-            raise RuntimeError(
-                f"{skill_file}: declares name={declared!r}, expected {name!r}"
-            )
+            raise RuntimeError(f"{skill_file}: declares name={declared!r}, expected {name!r}")
 
 
 def canonical_json(value: object) -> str:
@@ -321,9 +348,7 @@ def validate_path_separation(
         protected_sources.append(("runtime source", runtime_root))
     for label, protected in protected_sources:
         if paths_overlap(protected, target_root):
-            raise RuntimeError(
-                f"deployment target overlaps {label}: {target_root} and {protected}"
-            )
+            raise RuntimeError(f"deployment target overlaps {label}: {target_root} and {protected}")
         if codex_link_root is not None and paths_overlap(protected, codex_link_root):
             raise RuntimeError(
                 f"Codex link root overlaps {label}: {codex_link_root} and {protected}"
@@ -387,9 +412,7 @@ def spec_from_manifest(path: Path) -> BundleSpec:
         raise RuntimeError(f"invalid runtime digest in bundle manifest: {path}")
     calculated_id = bundle_id_for(skills, runtime)
     if bundle_id != calculated_id:
-        raise RuntimeError(
-            f"bundle id does not match manifest payload digests: {path}"
-        )
+        raise RuntimeError(f"bundle id does not match manifest payload digests: {path}")
     return BundleSpec(bundle_id, dict(skills), runtime)
 
 
@@ -470,9 +493,7 @@ def verify_bundle(
     if runtime_digest != actual.runtime_digest:
         raise RuntimeError(f"bundle runtime digest mismatch: {bundle}")
     if bundle.name != actual.bundle_id and not bundle.name.startswith(".staging-"):
-        raise RuntimeError(
-            f"bundle directory/name mismatch: {bundle.name} != {actual.bundle_id}"
-        )
+        raise RuntimeError(f"bundle directory/name mismatch: {bundle.name} != {actual.bundle_id}")
     return actual
 
 
@@ -539,6 +560,110 @@ def layout_document(skill_names: tuple[str, ...]) -> dict[str, object]:
     }
 
 
+def ownership_path(target_root: Path) -> Path:
+    return managed_root(target_root) / OWNERSHIP_FILE
+
+
+def ownership_document(
+    target_root: Path,
+    codex_link_root: Path | None,
+    skill_names: tuple[str, ...],
+    *,
+    installed: bool,
+    existing_discovery: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    target_root = target_root.resolve(strict=False)
+    discovery = dict(existing_discovery or {})
+    if codex_link_root is not None:
+        codex_link_root = codex_link_root.resolve(strict=False)
+        for name in skill_names:
+            discovery[str(codex_link_root / name)] = str(target_root / name)
+    return {
+        "schema": LAYOUT_SCHEMA,
+        "project": "agent-handrails",
+        "target_root": str(target_root),
+        "installed": installed,
+        "entrypoints": {
+            str(target_root / name): str(expected_entrypoint_target(target_root, name))
+            for name in skill_names
+        },
+        "discovery_links": dict(sorted(discovery.items())),
+    }
+
+
+def read_ownership(
+    target_root: Path,
+    skill_names: tuple[str, ...] = SKILL_NAMES,
+) -> dict[str, object]:
+    target_root = target_root.resolve(strict=False)
+    path = ownership_path(target_root)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"invalid ownership manifest: {path}: {exc}") from exc
+    expected_fields = {
+        "schema",
+        "project",
+        "target_root",
+        "installed",
+        "entrypoints",
+        "discovery_links",
+    }
+    if not isinstance(value, dict) or set(value) != expected_fields:
+        raise RuntimeError(f"invalid ownership manifest fields: {path}")
+    if (
+        value.get("schema") != LAYOUT_SCHEMA
+        or value.get("project") != "agent-handrails"
+        or value.get("target_root") != str(target_root)
+        or not isinstance(value.get("installed"), bool)
+    ):
+        raise RuntimeError(f"invalid ownership manifest identity: {path}")
+    entrypoints = value.get("entrypoints")
+    discovery = value.get("discovery_links")
+    if not isinstance(entrypoints, dict) or not isinstance(discovery, dict):
+        raise RuntimeError(f"invalid ownership link maps: {path}")
+    expected_entrypoints = {
+        str(target_root / name): str(expected_entrypoint_target(target_root, name))
+        for name in skill_names
+    }
+    if entrypoints != expected_entrypoints:
+        raise RuntimeError(f"ownership entrypoints mismatch: {path}")
+    allowed_targets = {str(target_root / name) for name in skill_names}
+    if not all(
+        isinstance(link, str)
+        and Path(link).is_absolute()
+        and isinstance(target, str)
+        and target in allowed_targets
+        and Path(link).name == Path(target).name
+        for link, target in discovery.items()
+    ):
+        raise RuntimeError(f"invalid ownership discovery links: {path}")
+    return value
+
+
+def write_ownership(
+    target_root: Path,
+    codex_link_root: Path | None,
+    skill_names: tuple[str, ...],
+    *,
+    installed: bool,
+) -> None:
+    path = ownership_path(target_root)
+    existing_discovery: Mapping[str, str] | None = None
+    if path.is_file():
+        existing_discovery = read_ownership(target_root, skill_names)["discovery_links"]
+    atomic_write_json(
+        path,
+        ownership_document(
+            target_root,
+            codex_link_root,
+            skill_names,
+            installed=installed,
+            existing_discovery=existing_discovery,
+        ),
+    )
+
+
 def validate_managed_layout(
     target_root: Path,
     skill_names: tuple[str, ...],
@@ -583,16 +708,21 @@ def preflight_apply(
         active_id = current_bundle_id(target_root)
         active_spec = verify_bundle(root / BUNDLES_DIR / active_id)
         require_bundle_skill_set(active_spec, skill_names)
+        ownership = (
+            read_ownership(target_root, skill_names)
+            if ownership_path(target_root).is_file()
+            else None
+        )
+        installed = ownership is None or ownership["installed"] is True
         for name in skill_names:
             state = symlink_state(
                 target_root / name,
                 expected_entrypoint_target(target_root, name),
             )
-            if state != "up-to-date":
-                raise RuntimeError(
-                    f"managed entrypoint conflict for {name}: {state}"
-                )
-        mode = "managed"
+            expected_state = "up-to-date" if installed else "missing"
+            if state != expected_state:
+                raise RuntimeError(f"managed entrypoint conflict for {name}: {state}")
+        mode = "managed" if installed else "managed-uninstalled"
     else:
         states = []
         for name in skill_names:
@@ -608,9 +738,7 @@ def preflight_apply(
         elif all(state == "legacy" for state in states):
             mode = "legacy-migration"
         else:
-            details = {
-                name: state for name, state in zip(skill_names, states, strict=True)
-            }
+            details = {name: state for name, state in zip(skill_names, states, strict=True)}
             raise RuntimeError(f"managed target layout conflict: {details}")
 
     missing_links: list[str] = []
@@ -623,9 +751,7 @@ def preflight_apply(
             if state == "missing":
                 missing_links.append(name)
             elif state != "up-to-date":
-                raise RuntimeError(
-                    f"discovery link conflict for {name}: {state}"
-                )
+                raise RuntimeError(f"discovery link conflict for {name}: {state}")
     return PreflightResult(mode, tuple(missing_links))
 
 
@@ -777,9 +903,7 @@ def verify_active_installation(
 ) -> None:
     active_id = current_bundle_id(target_root)
     if active_id != source_spec.bundle_id:
-        raise RuntimeError(
-            f"active bundle mismatch: {active_id} != {source_spec.bundle_id}"
-        )
+        raise RuntimeError(f"active bundle mismatch: {active_id} != {source_spec.bundle_id}")
     active_bundle = managed_root(target_root) / BUNDLES_DIR / active_id
     verify_bundle(active_bundle, source_spec)
     for name in skill_names:
@@ -796,8 +920,7 @@ def verify_active_installation(
             )
             if link_state_value != "up-to-date":
                 raise RuntimeError(
-                    f"discovery link verification failed for {name}: "
-                    f"{link_state_value}"
+                    f"discovery link verification failed for {name}: {link_state_value}"
                 )
 
 
@@ -838,15 +961,11 @@ def read_journal(target_root: Path) -> dict[str, object]:
     if not isinstance(raw_skills, list) or not raw_skills:
         raise RuntimeError(f"invalid migration journal skill set: {path}")
     if not all(
-        isinstance(name, str)
-        and re.fullmatch(r"[a-z0-9][a-z0-9-]*", name)
-        for name in raw_skills
+        isinstance(name, str) and re.fullmatch(r"[a-z0-9][a-z0-9-]*", name) for name in raw_skills
     ) or len(set(raw_skills)) != len(raw_skills):
         raise RuntimeError(f"invalid migration journal skill names: {path}")
     try:
-        layout = json.loads(
-            (managed_root(target_root) / LAYOUT_FILE).read_text(encoding="utf-8")
-        )
+        layout = json.loads((managed_root(target_root) / LAYOUT_FILE).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"cannot validate migration journal layout: {path}") from exc
     if not isinstance(layout, dict) or raw_skills != layout.get("skills"):
@@ -855,15 +974,23 @@ def read_journal(target_root: Path) -> dict[str, object]:
     bundle_id_pattern = r"v1-sha256-[0-9a-f]{64}"
     source_bundle_id = value.get("source_bundle_id")
     initial_bundle_id = value.get("initial_bundle_id")
-    if not isinstance(source_bundle_id, str) or re.fullmatch(
-        bundle_id_pattern,
-        source_bundle_id,
-    ) is None:
+    if (
+        not isinstance(source_bundle_id, str)
+        or re.fullmatch(
+            bundle_id_pattern,
+            source_bundle_id,
+        )
+        is None
+    ):
         raise RuntimeError(f"invalid source bundle id in migration journal: {path}")
-    if not isinstance(initial_bundle_id, str) or re.fullmatch(
-        bundle_id_pattern,
-        initial_bundle_id,
-    ) is None:
+    if (
+        not isinstance(initial_bundle_id, str)
+        or re.fullmatch(
+            bundle_id_pattern,
+            initial_bundle_id,
+        )
+        is None
+    ):
         raise RuntimeError(f"invalid initial bundle id in migration journal: {path}")
     bundles = managed_root(target_root) / BUNDLES_DIR
     verify_bundle(bundles / source_bundle_id)
@@ -871,9 +998,11 @@ def read_journal(target_root: Path) -> dict[str, object]:
 
     if value.get("target_root") != str(target_root):
         raise RuntimeError(f"migration journal target root mismatch: {path}")
-    if not isinstance(raw_missing, list) or not all(
-        isinstance(name, str) and name in raw_skills for name in raw_missing
-    ) or len(set(raw_missing)) != len(raw_missing):
+    if (
+        not isinstance(raw_missing, list)
+        or not all(isinstance(name, str) and name in raw_skills for name in raw_missing)
+        or len(set(raw_missing)) != len(raw_missing)
+    ):
         raise RuntimeError(f"invalid discovery set in migration journal: {path}")
     if not isinstance(raw_created_links, list):
         raise RuntimeError(f"invalid created-link records in migration journal: {path}")
@@ -885,9 +1014,7 @@ def read_journal(target_root: Path) -> dict[str, object]:
             "inode",
             "ctime_ns",
         }:
-            raise RuntimeError(
-                f"invalid created-link record in migration journal: {path}"
-            )
+            raise RuntimeError(f"invalid created-link record in migration journal: {path}")
         name = record.get("name")
         device = record.get("device")
         inode = record.get("inode")
@@ -906,9 +1033,7 @@ def read_journal(target_root: Path) -> dict[str, object]:
             or isinstance(ctime_ns, bool)
             or ctime_ns <= 0
         ):
-            raise RuntimeError(
-                f"invalid created-link ownership in migration journal: {path}"
-            )
+            raise RuntimeError(f"invalid created-link ownership in migration journal: {path}")
         created_names.add(name)
     raw_codex_root = value.get("codex_link_root")
     if raw_codex_root is not None and (
@@ -947,9 +1072,7 @@ def rollback_initial_migration(
         raise RuntimeError("migration journal has invalid rollback metadata")
     skill_names = tuple(str(name) for name in raw_skill_names)
     raw_codex_root = journal.get("codex_link_root")
-    codex_link_root = (
-        Path(raw_codex_root) if isinstance(raw_codex_root, str) else None
-    )
+    codex_link_root = Path(raw_codex_root) if isinstance(raw_codex_root, str) else None
     created_discovery = journal.get("created_discovery_links", [])
     backups = transaction_root(target_root) / "backups"
 
@@ -984,10 +1107,14 @@ def rollback_initial_migration(
     for name in reversed(skill_names):
         entrypoint = target_root / name
         backup = backups / name
-        if entrypoint.is_symlink() and symlink_state(
-            entrypoint,
-            expected_entrypoint_target(target_root, name),
-        ) == "up-to-date":
+        if (
+            entrypoint.is_symlink()
+            and symlink_state(
+                entrypoint,
+                expected_entrypoint_target(target_root, name),
+            )
+            == "up-to-date"
+        ):
             entrypoint.unlink()
         if backup.is_dir() and not backup.is_symlink():
             if path_exists(entrypoint):
@@ -1006,9 +1133,7 @@ def rollback_initial_migration(
             entrypoint,
             name,
         ):
-            raise RuntimeError(
-                f"legacy rollback did not restore entrypoint: {entrypoint}"
-            )
+            raise RuntimeError(f"legacy rollback did not restore entrypoint: {entrypoint}")
     if backups.is_dir() and any(backups.iterdir()):
         raise RuntimeError("migration rollback left unaccounted legacy backups")
 
@@ -1027,14 +1152,10 @@ def recover_interrupted_migration(target_root: Path) -> None:
     if journal.get("phase") == "committed":
         skill_names = tuple(str(name) for name in journal["skills"])
         source_bundle_id = str(journal["source_bundle_id"])
-        source_spec = verify_bundle(
-            managed_root(target_root) / BUNDLES_DIR / source_bundle_id
-        )
+        source_spec = verify_bundle(managed_root(target_root) / BUNDLES_DIR / source_bundle_id)
         require_bundle_skill_set(source_spec, skill_names)
         raw_codex_root = journal["codex_link_root"]
-        codex_link_root = (
-            Path(str(raw_codex_root)) if raw_codex_root is not None else None
-        )
+        codex_link_root = Path(str(raw_codex_root)) if raw_codex_root is not None else None
         verify_active_installation(
             source_spec,
             target_root,
@@ -1060,9 +1181,7 @@ def prepare_bootstrap(
     bootstrap.mkdir()
     try:
         (bootstrap / BUNDLES_DIR).mkdir()
-        (bootstrap / TRANSACTIONS_DIR / LEGACY_TRANSACTION / "backups").mkdir(
-            parents=True
-        )
+        (bootstrap / TRANSACTIONS_DIR / LEGACY_TRANSACTION / "backups").mkdir(parents=True)
         (bootstrap / LAYOUT_FILE).write_text(
             canonical_json(layout_document(skill_names)) + "\n",
             encoding="utf-8",
@@ -1070,9 +1189,7 @@ def prepare_bootstrap(
 
         legacy_id: str | None = None
         if preflight.mode == "legacy-migration":
-            legacy_roots = {
-                name: target_root / name for name in skill_names
-            }
+            legacy_roots = {name: target_root / name for name in skill_names}
             legacy_spec = bundle_spec(legacy_roots, None)
             stage_bundle(
                 bootstrap / BUNDLES_DIR,
@@ -1105,9 +1222,7 @@ def prepare_bootstrap(
             "target_root": str(target_root),
             "missing_discovery_links": list(preflight.missing_discovery_links),
             "created_discovery_links": [],
-            "codex_link_root": (
-                str(codex_link_root) if codex_link_root is not None else None
-            ),
+            "codex_link_root": (str(codex_link_root) if codex_link_root is not None else None),
             "codex_root_created": bool(
                 codex_link_root is not None and not codex_link_root.exists()
             ),
@@ -1165,9 +1280,7 @@ def migrate_initial_layout(
         journal["phase"] = "migrating-links"
         journal["current_action"] = None
         write_journal(target_root, journal)
-        missing_discovery = tuple(
-            str(name) for name in journal["missing_discovery_links"]
-        )
+        missing_discovery = tuple(str(name) for name in journal["missing_discovery_links"])
         if codex_link_root is not None and missing_discovery:
             codex_link_root.mkdir(parents=True, exist_ok=True)
             for name in missing_discovery:
@@ -1181,9 +1294,7 @@ def migrate_initial_layout(
                     )
                     created_records = journal["created_discovery_links"]
                     if not isinstance(created_records, list):
-                        raise RuntimeError(
-                            "migration journal lost created-link progress list"
-                        )
+                        raise RuntimeError("migration journal lost created-link progress list")
                     created_records.append(
                         {
                             "name": name,
@@ -1201,10 +1312,13 @@ def migrate_initial_layout(
         write_journal(target_root, journal)
 
         for name in skill_names:
-            if symlink_state(
-                target_root / name,
-                expected_entrypoint_target(target_root, name),
-            ) != "up-to-date":
+            if (
+                symlink_state(
+                    target_root / name,
+                    expected_entrypoint_target(target_root, name),
+                )
+                != "up-to-date"
+            ):
                 raise RuntimeError(f"entrypoint migration verification failed: {name}")
 
         ensure_source_matches(
@@ -1267,12 +1381,18 @@ def apply_managed_upgrade(
         source_spec,
         failpoint,
     )
-    codex_root_was_missing = bool(
-        codex_link_root is not None and not codex_link_root.exists()
-    )
+    codex_root_was_missing = bool(codex_link_root is not None and not codex_link_root.exists())
     created_links: list[CreatedLink] = []
+    created_entrypoints: list[CreatedLink] = []
     activated = False
     try:
+        if preflight.mode == "managed-uninstalled":
+            for name in skill_names:
+                failpoint(f"reinstall.before-entry:{name}")
+                created_entrypoints.append(
+                    install_symlink(target_root / name, expected_entrypoint_raw(name))
+                )
+                failpoint(f"reinstall.after-entry:{name}")
         created_links = ensure_discovery_links(
             target_root,
             codex_link_root,
@@ -1308,7 +1428,13 @@ def apply_managed_upgrade(
         return ApplyResult(
             source_spec.bundle_id,
             previous_id if previous_id != source_spec.bundle_id else None,
-            "up-to-date" if previous_id == source_spec.bundle_id else "upgraded",
+            (
+                "reinstalled"
+                if preflight.mode == "managed-uninstalled"
+                else "up-to-date"
+                if previous_id == source_spec.bundle_id
+                else "upgraded"
+            ),
         )
     except BaseException:
         if activated:
@@ -1322,6 +1448,12 @@ def apply_managed_upgrade(
             codex_link_root,
             codex_root_was_missing,
         )
+        for created in reversed(created_entrypoints):
+            if is_same_created_link(
+                created,
+                expected_entrypoint_target(target_root, created.path.name),
+            ):
+                created.path.unlink()
         remove_created_bundle(bundle, bundle_created)
         raise
 
@@ -1338,15 +1470,9 @@ def apply_bundle(
     source_root = source_root.expanduser().resolve()
     target_root = target_root.expanduser().resolve(strict=False)
     codex_link_root = (
-        codex_link_root.expanduser().resolve(strict=False)
-        if codex_link_root is not None
-        else None
+        codex_link_root.expanduser().resolve(strict=False) if codex_link_root is not None else None
     )
-    runtime_root = (
-        runtime_root.expanduser().resolve()
-        if runtime_root is not None
-        else None
-    )
+    runtime_root = runtime_root.expanduser().resolve() if runtime_root is not None else None
     validate_path_separation(
         source_root,
         target_root,
@@ -1380,8 +1506,8 @@ def apply_bundle(
                 source_skill_roots(source_root, skill_names),
                 runtime_root,
             )
-            if current_preflight.mode == "managed":
-                return apply_managed_upgrade(
+            if current_preflight.mode in {"managed", "managed-uninstalled"}:
+                result = apply_managed_upgrade(
                     source_root,
                     target_root,
                     codex_link_root,
@@ -1391,32 +1517,39 @@ def apply_bundle(
                     skill_names,
                     failpoint,
                 )
-
-            _, initial_id = prepare_bootstrap(
-                source_root,
+            else:
+                _, initial_id = prepare_bootstrap(
+                    source_root,
+                    target_root,
+                    codex_link_root,
+                    current_preflight,
+                    source_spec,
+                    runtime_root,
+                    skill_names,
+                    failpoint,
+                )
+                migrate_initial_layout(
+                    source_root,
+                    target_root,
+                    codex_link_root,
+                    source_spec,
+                    runtime_root,
+                    initial_id,
+                    skill_names,
+                    failpoint,
+                )
+                result = ApplyResult(
+                    source_spec.bundle_id,
+                    initial_id if initial_id != source_spec.bundle_id else None,
+                    current_preflight.mode,
+                )
+            write_ownership(
                 target_root,
                 codex_link_root,
-                current_preflight,
-                source_spec,
-                runtime_root,
                 skill_names,
-                failpoint,
+                installed=True,
             )
-            migrate_initial_layout(
-                source_root,
-                target_root,
-                codex_link_root,
-                source_spec,
-                runtime_root,
-                initial_id,
-                skill_names,
-                failpoint,
-            )
-            return ApplyResult(
-                source_spec.bundle_id,
-                initial_id if initial_id != source_spec.bundle_id else None,
-                current_preflight.mode,
-            )
+            return result
         except BaseException:
             if target_created:
                 try:
@@ -1424,6 +1557,95 @@ def apply_bundle(
                 except OSError:
                     pass
             raise
+
+
+def _verify_owned_link(path: Path, expected_target: Path) -> None:
+    if not path_exists(path):
+        return
+    if not path.is_symlink() or logical_link_target(path) != expected_target:
+        raise RuntimeError(f"ownership mismatch; refusing to remove replaced path: {path}")
+
+
+def _uninstall_preflight(
+    target_root: Path,
+    skill_names: tuple[str, ...],
+    *,
+    purge: bool,
+) -> tuple[dict[str, object], str]:
+    validate_managed_layout(target_root, skill_names)
+    if transaction_journal(target_root).is_file():
+        raise RuntimeError("cannot uninstall while migration recovery is pending")
+    ownership = read_ownership(target_root, skill_names)
+    active_id = current_bundle_id(target_root)
+    active_bundle = managed_root(target_root) / BUNDLES_DIR / active_id
+    active_spec = verify_bundle(active_bundle)
+    require_bundle_skill_set(active_spec, skill_names)
+    for raw_path, raw_target in {
+        **ownership["entrypoints"],
+        **ownership["discovery_links"],
+    }.items():
+        _verify_owned_link(Path(raw_path), Path(raw_target))
+    if purge:
+        root = managed_root(target_root)
+        expected = {
+            LAYOUT_FILE,
+            OWNERSHIP_FILE,
+            BUNDLES_DIR,
+            CURRENT_LINK,
+            TRANSACTIONS_DIR,
+        }
+        actual = {path.name for path in root.iterdir()}
+        if actual != expected:
+            raise RuntimeError(
+                "managed data contains unowned entries; refusing purge: "
+                f"{sorted(actual - expected)}"
+            )
+        transactions = root / TRANSACTIONS_DIR
+        if any(transactions.iterdir()):
+            raise RuntimeError("managed transactions are not empty; refusing purge")
+        bundles = root / BUNDLES_DIR
+        for bundle in bundles.iterdir():
+            spec = verify_bundle(bundle)
+            require_bundle_skill_set(spec, skill_names)
+    return ownership, active_id
+
+
+def uninstall_bundle(
+    target_root: Path,
+    *,
+    purge: bool = False,
+    skill_names: tuple[str, ...] = SKILL_NAMES,
+) -> UninstallResult:
+    """Remove only manifest-owned links; retain verified bundles unless purged."""
+
+    target_root = target_root.expanduser().resolve(strict=False)
+    if not target_root.is_dir() or target_root.is_symlink():
+        raise RuntimeError(f"managed target is missing or invalid: {target_root}")
+    _uninstall_preflight(target_root, skill_names, purge=purge)
+    with deployment_lock(target_root):
+        ownership, active_id = _uninstall_preflight(
+            target_root,
+            skill_names,
+            purge=purge,
+        )
+        links = {
+            **ownership["entrypoints"],
+            **ownership["discovery_links"],
+        }
+        for raw_path, raw_target in links.items():
+            path = Path(raw_path)
+            _verify_owned_link(path, Path(raw_target))
+            if path.is_symlink():
+                path.unlink()
+        write_ownership(
+            target_root,
+            None,
+            skill_names,
+            installed=False,
+        )
+        if purge:
+            shutil.rmtree(managed_root(target_root))
+        return UninstallResult(active_id, purge)
 
 
 def check_installation(
@@ -1437,15 +1659,9 @@ def check_installation(
     source_root = source_root.expanduser().resolve()
     target_root = target_root.expanduser().resolve(strict=False)
     codex_link_root = (
-        codex_link_root.expanduser().resolve(strict=False)
-        if codex_link_root is not None
-        else None
+        codex_link_root.expanduser().resolve(strict=False) if codex_link_root is not None else None
     )
-    runtime_root = (
-        runtime_root.expanduser().resolve()
-        if runtime_root is not None
-        else None
-    )
+    runtime_root = runtime_root.expanduser().resolve() if runtime_root is not None else None
     lines: list[str] = []
     try:
         validate_path_separation(
@@ -1495,13 +1711,19 @@ def check_installation(
         active_spec = verify_bundle(active_bundle)
         require_bundle_skill_set(active_spec, skill_names)
         current_state = (
-            "up-to-date"
-            if active_spec.bundle_id == source_spec.bundle_id
-            else "different"
+            "up-to-date" if active_spec.bundle_id == source_spec.bundle_id else "different"
         )
         lines.append("bundle/layout: managed")
         lines.append(f"bundle/current: {current_state} ({active_id})")
         all_current = current_state == "up-to-date"
+        if ownership_path(target_root).is_file():
+            ownership = read_ownership(target_root, skill_names)
+            ownership_state = "installed" if ownership["installed"] else "uninstalled"
+            lines.append(f"bundle/ownership: {ownership_state}")
+            all_current = all_current and ownership["installed"] is True
+        else:
+            lines.append("bundle/ownership: migration-required")
+            all_current = False
         for name in skill_names:
             state = symlink_state(
                 target_root / name,
@@ -1537,14 +1759,27 @@ def compare(source: Path, target: Path) -> str:
 
 def main() -> int:
     args = parse_args()
+    if args.purge and not args.uninstall:
+        print("ERROR: --purge is valid only with --uninstall", file=sys.stderr)
+        return 2
     target_root = args.target.expanduser().resolve()
     codex_link_root = (
-        args.codex_link_root.expanduser().resolve()
-        if args.codex_link_root is not None
-        else None
+        args.codex_link_root.expanduser().resolve() if args.codex_link_root is not None else None
     )
 
     runtime_root = RUNTIME_ROOT if RUNTIME_ROOT.is_dir() else None
+    if args.uninstall:
+        try:
+            removed = uninstall_bundle(target_root, purge=args.purge)
+        except (OSError, RuntimeError) as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+        print(f"Uninstalled manifest-owned links for bundle: {removed.bundle_id}")
+        if removed.purged:
+            print("Purged verified retained bundles and managed data")
+        else:
+            print(f"Retained rollback data: {managed_root(target_root)}")
+        return 0
     if args.check:
         result = check_installation(
             SOURCE_ROOT,

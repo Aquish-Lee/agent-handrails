@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import re
 import subprocess
@@ -10,7 +9,6 @@ import unittest
 from pathlib import Path
 
 import yaml
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = PROJECT_ROOT / "contracts" / "usable-loop-v2.json"
@@ -39,9 +37,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
     def test_v1_files_are_immutable_history(self) -> None:
         for relative, expected in V1_HASHES.items():
             with self.subTest(path=relative):
-                actual = hashlib.sha256(
-                    (PROJECT_ROOT / relative).read_bytes()
-                ).hexdigest()
+                actual = hashlib.sha256((PROJECT_ROOT / relative).read_bytes()).hexdigest()
                 self.assertEqual(actual, expected)
 
     def test_v2_is_active_and_manages_exactly_seven_skills(self) -> None:
@@ -60,9 +56,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         )
         lifecycle = policies["evidence-lifecycle"]
         self.assertFalse(lifecycle["development_evidence_supports_claims"])
-        self.assertEqual(
-            lifecycle["proof-of-unrelated-change_reuse"], "unsupported-in-v2"
-        )
+        self.assertEqual(lifecycle["proof-of-unrelated-change_reuse"], "unsupported-in-v2")
         self.assertEqual(lifecycle["recovery"], "rerun-narrowest-relevant-check")
 
     def test_claim_kinds_have_distinct_record_requirements(self) -> None:
@@ -76,19 +70,13 @@ class UsableLoopV2ContractTests(unittest.TestCase):
             conditions["fact"]["forbidden"],
             ["claim_boundary_digest", "review_id"],
         )
-        self.assertEqual(
-            conditions["scoped-task"]["required"], ["claim_boundary_digest"]
-        )
+        self.assertEqual(conditions["scoped-task"]["required"], ["claim_boundary_digest"])
         self.assertEqual(conditions["high-assurance"]["required"], ["review_id"])
 
     def test_evidence_review_and_checkpoint_ownership_is_explicit(self) -> None:
         records = load_contract()["records"]
-        self.assertEqual(
-            records["development-evidence-record"]["producers"], ["feedback-loop"]
-        )
-        self.assertEqual(
-            records["claim-evidence-record"]["producers"], ["verify-before-claim"]
-        )
+        self.assertEqual(records["development-evidence-record"]["producers"], ["feedback-loop"])
+        self.assertEqual(records["claim-evidence-record"]["producers"], ["verify-before-claim"])
         self.assertEqual(records["review-record"]["producers"], ["two-axis-review"])
         self.assertEqual(set(records["checkpoint"]["producers"]), SKILL_NAMES)
 
@@ -97,9 +85,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertEqual(policy["caller_supplied_digest"], "forbidden")
         self.assertIn("second-identical-state-capture", policy["confirm_requires"])
         self.assertIn("state-drift", policy["fail_on"])
-        runtime = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_text(
-            encoding="utf-8"
-        )
+        runtime = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_text(encoding="utf-8")
         self.assertNotIn("review_boundary_digest", runtime)
 
     def test_each_skill_has_standard_frontmatter_and_v2_binding(self) -> None:
@@ -114,9 +100,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
                 self.assertEqual(set(values), {"name", "description"})
                 self.assertEqual(values["name"], name)
                 self.assertIn("contract: usable-loop/v2", text)
-                self.assertIn(
-                    f"role: {contract['skills'][name]['role']}", text
-                )
+                self.assertIn(f"role: {contract['skills'][name]['role']}", text)
                 reference = skill_root / "references" / "usable-loop-v2.md"
                 self.assertTrue(reference.is_file())
                 self.assertIn("Contract: usable-loop/v2", reference.read_text())
@@ -156,15 +140,13 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         for name in sorted(SKILL_NAMES):
             with self.subTest(skill=name):
                 metadata = yaml.safe_load(
-                    (
-                        PROJECT_ROOT / "skills" / name / "agents" / "openai.yaml"
-                    ).read_text(encoding="utf-8")
+                    (PROJECT_ROOT / "skills" / name / "agents" / "openai.yaml").read_text(
+                        encoding="utf-8"
+                    )
                 )
                 self.assertFalse(metadata["policy"]["allow_implicit_invocation"])
                 self.assertIn(f"${name}", metadata["interface"]["default_prompt"])
-                self.assertLessEqual(
-                    len(metadata["interface"]["short_description"]), 64
-                )
+                self.assertLessEqual(len(metadata["interface"]["short_description"]), 64)
 
     def test_atomic_skill_promises_are_visible_in_main_instructions(self) -> None:
         required = {
@@ -174,9 +156,7 @@ class UsableLoopV2ContractTests(unittest.TestCase):
             "verify-before-claim": ("`fact`", "`scoped-task`", "`high-assurance`"),
         }
         for name, terms in required.items():
-            text = (PROJECT_ROOT / "skills" / name / "SKILL.md").read_text(
-                encoding="utf-8"
-            )
+            text = (PROJECT_ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
             for term in terms:
                 with self.subTest(skill=name, term=term):
                     self.assertIn(term, text)

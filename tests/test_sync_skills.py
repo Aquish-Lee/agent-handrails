@@ -10,7 +10,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = PROJECT_ROOT / "scripts" / "sync_skills.py"
 SPEC = importlib.util.spec_from_file_location("sync_skills", MODULE_PATH)
@@ -114,6 +113,101 @@ class BundleDeploymentTests(unittest.TestCase):
         self.assertEqual(sync_skills.read_journal(target)["phase"], "committed")
         return result
 
+    def test_default_target_uses_xdg_for_new_install(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            home = root / "home"
+            xdg = root / "xdg"
+            home.mkdir()
+
+            selected = sync_skills.choose_default_target(
+                environment={"XDG_DATA_HOME": str(xdg)},
+                home=home,
+            )
+
+            self.assertEqual(selected, xdg / "agent-handrails" / "skills")
+
+    def test_default_target_preserves_existing_legacy_managed_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            home = Path(temporary_directory)
+            legacy = home / "Workspace" / "Skills"
+            (legacy / ".agent-handrails").mkdir(parents=True)
+
+            selected = sync_skills.choose_default_target(
+                environment={"XDG_DATA_HOME": str(home / "xdg")},
+                home=home,
+            )
+
+            self.assertEqual(selected, legacy)
+
+    def test_uninstall_removes_only_owned_links_and_retains_bundles(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = self.make_source(root, "v2")
+            target = root / "target"
+            codex_links = root / "codex"
+            (target / "unrelated").mkdir(parents=True)
+            (target / "unrelated" / "KEEP").write_text("keep\n", encoding="utf-8")
+            sync_skills.apply_bundle(source, target, codex_links)
+            active_id = sync_skills.current_bundle_id(target)
+
+            result = sync_skills.uninstall_bundle(target)
+
+            self.assertEqual(result.bundle_id, active_id)
+            self.assertFalse(result.purged)
+            for name in sync_skills.SKILL_NAMES:
+                self.assertFalse(sync_skills.path_exists(target / name))
+                self.assertFalse(sync_skills.path_exists(codex_links / name))
+            self.assertTrue((target / ".agent-handrails" / "bundles" / active_id).is_dir())
+            ownership = sync_skills.read_ownership(target)
+            self.assertFalse(ownership["installed"])
+            self.assertEqual(
+                (target / "unrelated" / "KEEP").read_text(encoding="utf-8"),
+                "keep\n",
+            )
+
+            reapplied = sync_skills.apply_bundle(source, target, codex_links)
+            self.assertEqual(reapplied.mode, "reinstalled")
+            self.assertEqual(
+                sync_skills.check_installation(source, target, codex_links).exit_code, 0
+            )
+
+    def test_uninstall_refuses_replaced_link_before_any_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = self.make_source(root, "v2")
+            target = root / "target"
+            codex_links = root / "codex"
+            sync_skills.apply_bundle(source, target, codex_links)
+            replaced = codex_links / sync_skills.SKILL_NAMES[-1]
+            replaced.unlink()
+            replaced.write_text("external replacement\n", encoding="utf-8")
+            before_target = filesystem_snapshot(target)
+            before_links = filesystem_snapshot(codex_links)
+
+            with self.assertRaisesRegex(RuntimeError, "ownership mismatch"):
+                sync_skills.uninstall_bundle(target)
+
+            self.assertEqual(filesystem_snapshot(target), before_target)
+            self.assertEqual(filesystem_snapshot(codex_links), before_links)
+
+    def test_purge_requires_explicit_mode_and_keeps_unrelated_target_content(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = self.make_source(root, "v2")
+            target = root / "target"
+            codex_links = root / "codex"
+            target.mkdir()
+            (target / "KEEP").write_text("keep\n", encoding="utf-8")
+            sync_skills.apply_bundle(source, target, codex_links)
+
+            result = sync_skills.uninstall_bundle(target, purge=True)
+
+            self.assertTrue(result.purged)
+            self.assertFalse((target / ".agent-handrails").exists())
+            self.assertEqual((target / "KEEP").read_text(encoding="utf-8"), "keep\n")
+            self.assertTrue(target.is_dir())
+
     def test_first_install_uses_versioned_bundle_and_stable_links(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -150,23 +244,16 @@ class BundleDeploymentTests(unittest.TestCase):
             target = root / "target"
             codex_links = root / "codex"
             first = sync_skills.apply_bundle(source_v1, target, codex_links)
-            entry_links = {
-                name: os.readlink(target / name) for name in sync_skills.SKILL_NAMES
-            }
+            entry_links = {name: os.readlink(target / name) for name in sync_skills.SKILL_NAMES}
             discovery_links = {
-                name: os.readlink(codex_links / name)
-                for name in sync_skills.SKILL_NAMES
+                name: os.readlink(codex_links / name) for name in sync_skills.SKILL_NAMES
             }
 
             second = sync_skills.apply_bundle(source_v2, target, codex_links)
 
             self.assertNotEqual(first.bundle_id, second.bundle_id)
-            self.assertTrue(
-                (target / ".agent-handrails" / "bundles" / first.bundle_id).is_dir()
-            )
-            self.assertTrue(
-                (target / ".agent-handrails" / "bundles" / second.bundle_id).is_dir()
-            )
+            self.assertTrue((target / ".agent-handrails" / "bundles" / first.bundle_id).is_dir())
+            self.assertTrue((target / ".agent-handrails" / "bundles" / second.bundle_id).is_dir())
             self.assertEqual(
                 os.readlink(target / ".agent-handrails" / "current"),
                 f"bundles/{second.bundle_id}",
@@ -177,10 +264,7 @@ class BundleDeploymentTests(unittest.TestCase):
             )
             self.assertEqual(
                 discovery_links,
-                {
-                    name: os.readlink(codex_links / name)
-                    for name in sync_skills.SKILL_NAMES
-                },
+                {name: os.readlink(codex_links / name) for name in sync_skills.SKILL_NAMES},
             )
             self.assert_all_skills_resolve_to(target, "v2")
 
@@ -481,8 +565,7 @@ class BundleDeploymentTests(unittest.TestCase):
             first = sync_skills.apply_bundle(source_v1, target, codex_links)
             second = sync_skills.apply_bundle(source_v2, target, codex_links)
             bundle_names = {
-                path.name
-                for path in (target / ".agent-handrails" / "bundles").iterdir()
+                path.name for path in (target / ".agent-handrails" / "bundles").iterdir()
             }
 
             rolled_back = sync_skills.apply_bundle(source_v1, target, codex_links)
@@ -490,12 +573,7 @@ class BundleDeploymentTests(unittest.TestCase):
             self.assertEqual(rolled_back.bundle_id, first.bundle_id)
             self.assertEqual(rolled_back.previous_bundle_id, second.bundle_id)
             self.assertEqual(
-                {
-                    path.name
-                    for path in (
-                        target / ".agent-handrails" / "bundles"
-                    ).iterdir()
-                },
+                {path.name for path in (target / ".agent-handrails" / "bundles").iterdir()},
                 bundle_names,
             )
             self.assert_all_skills_resolve_to(target, "v1")
@@ -507,9 +585,7 @@ class BundleDeploymentTests(unittest.TestCase):
             target = root / "target"
             codex_links = root / "codex"
             result = sync_skills.apply_bundle(source, target, codex_links)
-            bundle = (
-                target / ".agent-handrails" / "bundles" / result.bundle_id
-            )
+            bundle = target / ".agent-handrails" / "bundles" / result.bundle_id
             name = sync_skills.SKILL_NAMES[0]
             skill = bundle / "skills" / name
             (skill / "payload.txt").write_text("forged\n", encoding="utf-8")
@@ -537,9 +613,7 @@ class BundleDeploymentTests(unittest.TestCase):
             target = root / "target"
             codex_links = root / "codex"
             result = sync_skills.apply_bundle(source, target, codex_links)
-            bundle = (
-                target / ".agent-handrails" / "bundles" / result.bundle_id
-            )
+            bundle = target / ".agent-handrails" / "bundles" / result.bundle_id
             (bundle / "EXTRA").write_text("unexpected\n", encoding="utf-8")
 
             checked = sync_skills.check_installation(
@@ -728,12 +802,8 @@ class BundleDeploymentTests(unittest.TestCase):
                 runtime_root=runtime,
             )
 
-            second_bundle = (
-                target / ".agent-handrails" / "bundles" / second.bundle_id
-            )
-            second_spec = sync_skills.spec_from_manifest(
-                second_bundle / "manifest.json"
-            )
+            second_bundle = target / ".agent-handrails" / "bundles" / second.bundle_id
+            second_spec = sync_skills.spec_from_manifest(second_bundle / "manifest.json")
             self.assertNotEqual(first.bundle_id, second.bundle_id)
             self.assertEqual(second.previous_bundle_id, first.bundle_id)
             self.assertEqual(
@@ -741,9 +811,7 @@ class BundleDeploymentTests(unittest.TestCase):
                 "print('v1')\n",
             )
             self.assertEqual(
-                (second_bundle / "runtime" / runtime_file.name).read_text(
-                    encoding="utf-8"
-                ),
+                (second_bundle / "runtime" / runtime_file.name).read_text(encoding="utf-8"),
                 "print('v2')\n",
             )
             self.assertEqual(
@@ -789,9 +857,7 @@ class BundleDeploymentTests(unittest.TestCase):
                 target,
                 runtime_root=runtime,
             )
-            bundle = (
-                target / ".agent-handrails" / "bundles" / installed.bundle_id
-            )
+            bundle = target / ".agent-handrails" / "bundles" / installed.bundle_id
 
             self.assertEqual(dirty_spec, clean_spec)
             self.assertEqual(list(bundle.rglob("__pycache__")), [])
@@ -822,9 +888,7 @@ class BundleDeploymentTests(unittest.TestCase):
                 codex_links,
             )
             transaction = sync_skills.transaction_root(target)
-            self.assertTrue(
-                (transaction / "backups" / sync_skills.SKILL_NAMES[0]).is_dir()
-            )
+            self.assertTrue((transaction / "backups" / sync_skills.SKILL_NAMES[0]).is_dir())
 
             reapplied = sync_skills.apply_bundle(source, target, codex_links)
 
@@ -912,9 +976,7 @@ class BundleDeploymentTests(unittest.TestCase):
                 sync_skills.no_failpoint,
             )
             first_name = sync_skills.SKILL_NAMES[0]
-            backup = (
-                sync_skills.transaction_root(target) / "backups" / first_name
-            )
+            backup = sync_skills.transaction_root(target) / "backups" / first_name
             os.replace(target / first_name, backup)
             sync_skills.install_symlink(
                 target / first_name,
@@ -1082,6 +1144,7 @@ class BundleDeploymentTests(unittest.TestCase):
             )
 
             self.assertTrue((codex / name).is_symlink())
+
 
 if __name__ == "__main__":
     unittest.main()
