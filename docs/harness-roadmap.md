@@ -20,6 +20,8 @@ branch-sandbox
 
 Each primitive must remain useful independently of any orchestrator.
 
+`usable-loop/v1` now projects the complete manual loop. Alpha release still depends on clean-checkout CI, real Codex installation, and dogfood; this does not authorize Layer 2 automation yet.
+
 ## Layer 1 — Advisory playbooks
 
 Capture common compositions without making them mandatory:
@@ -32,6 +34,8 @@ Capture common compositions without making them mandatory:
 - deployment/runtime change.
 
 A playbook is a recommendation with stop/skip conditions, not a state machine that must always run to completion.
+
+The current end-to-end advisory composition is `playbooks/practical-development-loop.md`, including current-state review, state-bound evidence, conversation-first Checkpoints, and Local Capsule cleanup.
 
 ## Layer 2 — Suggestion harness
 
@@ -52,7 +56,7 @@ Minimum state model:
 
 - **Task context** — goal, constraints, non-goals, current task shape;
 - **Outcome reference** — Task ID plus the exact source identity/revision, authority, snapshot, currentness, and stale conditions;
-- **Work boundary** — repository, branch/worktree, allowed scope, rollback path;
+- **Work boundary** — task-start revision/candidates, participating workspaces, expected changes, authorization guardrails, and rollback path;
 - **Decision trace** — selected/skipped handrails and reasons;
 - **Evidence ledger** — commands, outputs, reviews, runtime observations;
 - **Claim ledger** — claims currently supported, unsupported, or blocked;

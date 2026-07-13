@@ -96,6 +96,23 @@ These are examples, not required workflows. Direct implementation plus verificat
 
 More examples live in [`playbooks/`](playbooks/README.md).
 
+## Explicit Codex invocation
+
+After installing the managed bundle, mention the handrail directly in the prompt:
+
+For example, invoke `$plan-lite` when you want a compact implementation plan.
+
+```text
+$plan-lite Turn this accepted feature request into a compact implementation plan.
+$feedback-loop Implement the next slice through a failing signal and fresh evidence.
+$two-axis-review Review the current task state, including local dirty work.
+$verify-before-claim Verify the exact completion claim against current state.
+```
+
+In Codex CLI/IDE, run `/skills` or type `$` to select a skill. Codex also supports `$skill-name` mentions in prompts. Agent Handrails disables implicit matching, so these explicit mentions remain the intended path. See the official [Build skills](https://learn.chatgpt.com/docs/build-skills) documentation.
+
+The `$` invocation syntax is documented by Codex, and temporary discovery links are covered locally. Discovery and invocation against the author's real installed alpha bundle are not yet verified; Task 5 keeps that as a release gate rather than presenting it as completed evidence.
+
 ## Project source and managed deployment
 
 Keep the Git repository in an engineering workspace and treat `skills/` and any shared `runtime/` support as canonical source. The deployment root exposes stable skill entrypoints backed by complete, content-addressed bundles:
@@ -140,19 +157,42 @@ Generated Python bytecode (`__pycache__`, `*.pyc`, and `*.pyo`) is excluded from
 
 Verified bundles are retained by default; this release performs no automatic pruning. To roll back, use a known-good revision that already contains the bundle-aware deployer, then run `--apply` and `--check` again. Do not use a pre-migration version of `sync_skills.py` against a managed bundle layout or edit the `current` link manually.
 
+The pre-contract rollback baseline is `3eee4ac41bd6d295ef3253a40109fd0dd72654f7`. Use a detached worktree so rollback does not disturb current development:
+
+```bash
+rollback=/tmp/agent-handrails-rollback
+git worktree add --detach "$rollback" 3eee4ac41bd6d295ef3253a40109fd0dd72654f7
+python3 "$rollback/scripts/sync_skills.py" --apply --codex-link-root ~/.agents/skills
+python3 "$rollback/scripts/sync_skills.py" --check --codex-link-root ~/.agents/skills
+git worktree remove "$rollback"
+```
+
+This activates the retained old seven-skill behavior without deleting newer bundles. To roll forward, run `--apply` and `--check` again from the desired newer checkout.
+
 Managed entrypoints and bundle contents are deployment artifacts, not a second development source. Edit the project files, review and commit them, then sync again. The v0.1 deployment helper supports Linux with Python 3.10 or newer. Each handrail includes `agents/openai.yaml` with `policy.allow_implicit_invocation: false`, so Codex can expose it for explicit invocation without ambient matching. Other agents may interpret metadata or symlink discovery differently.
+
+## Compatibility and current release gates
+
+- Required runtime: Linux and Python 3.10+.
+- Locally exercised in this development environment: Linux with Python 3.14; Python 3.10 syntax compatibility is checked mechanically.
+- CI matrix: Python 3.10 and 3.14 on GitHub-hosted Ubuntu once the repository is published.
+- Windows, macOS, Jujutsu, submodules, unborn `HEAD`, non-Codex agents, and network-filesystem/power-loss durability are not yet verified release claims.
+- The stable `v0.1.0` tag remains blocked on GitHub CI, clean-clone acceptance, real Codex installation, five dogfood scenarios, and one external-project loop.
 
 ## Validate the repository
 
 ```bash
+python3 -m pip install PyYAML==6.0.3
 python3 -m unittest discover -s tests -v
 python3 scripts/validate.py
 python3 runtime/git_state.py --help
 ```
 
+PyYAML is a development-time validation dependency only; deployed handrails, the Git state helper, and the bundle deployer remain standard-library Python.
+
 ## Project status
 
-Early and intentionally small. The current goal is to validate each handrail through real engineering work before adding an orchestrator that automates their composition.
+The atomic manual loop is feature-complete for alpha packaging, but `v0.1.0` is not released. The current goal is to pass clean-checkout CI and real engineering dogfood before adding an orchestrator that automates composition.
 
 ## License
 

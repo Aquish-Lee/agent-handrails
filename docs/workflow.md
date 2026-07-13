@@ -86,6 +86,12 @@ The Local Capsule stores the current Outcome locator/revision/authority/snapshot
 
 Delete the Capsule only after integration or a clean durable handoff and after all unique information is promoted or reproducible. A passing test alone is not a cleanup signal.
 
+## Release acceptance
+
+Treat a clean GitHub Actions checkout as the release packaging boundary. On Python 3.10 and the current stable matrix version, install PyYAML, run the full tests and repository validator, smoke the Git state helper, then apply/check a complete temporary bundle with discovery links. The release candidate must leave tracked source clean.
+
+Before a stable tag, repeat those checks from a fresh clone, exercise rollback with the exact bundle-aware baseline, and run the real Codex/dogfood gates. Local green tests do not substitute for unpublished CI, real installation, or external-project evidence.
+
 ## Task shapes, not rigid levels
 
 Software engineering work is open-ended. These shapes are a shared vocabulary for choosing how much process is useful, not a classifier that restricts the agent.

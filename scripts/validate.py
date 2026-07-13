@@ -22,12 +22,16 @@ EXPECTED_SKILLS = {
     "verify-before-claim",
 }
 REQUIRED_FILES = {
+    ".github/workflows/validate.yml",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE",
     "docs/philosophy.md",
     "docs/workflow.md",
     "docs/harness-roadmap.md",
     "playbooks/README.md",
+    "playbooks/practical-development-loop.md",
+    "runtime/git_state.py",
     "scripts/sync_skills.py",
     "CONTEXT.md",
     "contracts/usable-loop-v1.json",
