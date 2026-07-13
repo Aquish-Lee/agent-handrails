@@ -64,4 +64,7 @@ Verify Before Claim must inventory and classify current candidates mechanically.
 
 Return the strategy, ordered slices, verification matrix, main risk/rollback,
 and Review Boundary Seed. Keep it conversational unless the user asks for a
-durable artifact. Use a Checkpoint only on a continuity trigger.
+durable artifact. Bind Task ID, Outcome Revision, and Authority in one line by
+default; do not expand the full Outcome Reference or record schema unless the
+user explicitly asks for it or continuity requires it. Use a Checkpoint only on
+a continuity trigger.

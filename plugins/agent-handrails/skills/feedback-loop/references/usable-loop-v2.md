@@ -46,6 +46,8 @@ pause/block, cross-session or agent handoff, context-compaction risk,
 expensive/non-repeatable evidence, or explicit handoff request. If local
 persistence is needed, rewrite the one `.scratch/<task-id>/STATE.md` Capsule.
 It is an orientation cache, never authority or fresh evidence.
+On resume, first reconcile the designated Outcome Source/Revision, then
+read the Capsule for orientation, then recapture participating state.
 
 Checkpoint fields: `task_id`, `outcome_reference`, `boundary_and_state`,
 `done`, `next`, `blockers`, `decision_delta`, `evidence_delta`,

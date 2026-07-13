@@ -85,3 +85,5 @@ has drifted, or the next action would exceed authorization.
 Return the behavior observed, the exact check, the current development-evidence
 status, its scope limit, and the next development move. Do not emit a completion
 claim or full Checkpoint unless explicitly requested or continuity is at risk.
+On resume, reconcile the designated Outcome Source/Revision first, read any
+Capsule second, and recapture participating state third.

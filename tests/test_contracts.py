@@ -136,6 +136,18 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
+    def test_every_projection_preserves_authority_first_resume_order(self) -> None:
+        for name in sorted(SKILL_NAMES):
+            text = (PROJECT_ROOT / "skills" / name / "references" / "usable-loop-v2.md").read_text(
+                encoding="utf-8"
+            )
+            outcome = text.index("first reconcile the designated Outcome Source/Revision")
+            capsule = text.index("read the Capsule for orientation")
+            state = text.index("recapture participating state")
+            with self.subTest(skill=name):
+                self.assertLess(outcome, capsule)
+                self.assertLess(capsule, state)
+
     def test_openai_metadata_keeps_explicit_invocation_and_default_prompt(self) -> None:
         for name in sorted(SKILL_NAMES):
             with self.subTest(skill=name):
