@@ -56,6 +56,7 @@ def main() -> int:
             "pyproject.toml",
             "-r",
             "runtime/handrails_state.py",
+            "runtime/safe_diff.py",
             "scripts",
         ],
     ]

@@ -25,6 +25,7 @@ extend-exclude = [
   "plugins/agent-handrails/skills",
   "runtime/git_state.py",
   "skills/*/scripts/handrails_state.py",
+  "skills/*/scripts/safe_diff.py",
 ]
 
 [tool.ruff.lint]

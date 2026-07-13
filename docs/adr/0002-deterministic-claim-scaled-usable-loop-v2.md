@@ -60,6 +60,12 @@ baseline.
     never a raw content dump. The persisted confirmed boundary is opaque and is
     passed unchanged to capture; only compact confirm/capture scalar results are
     transcript-safe.
+12. Changed-file content inspection first passes through the bundled safe-diff
+    preflight. It privately checks review-base content, current content, and the
+    bounded diff for sensitive paths, credential-bearing assignments, and known
+    token shapes. Sensitive candidates expose only structural redaction; neither
+    historical nor current values may enter the transcript. A redacted result
+    cannot be bypassed with direct file, diff, history, or search output.
 
 ## Consequences
 
@@ -68,6 +74,8 @@ baseline.
   and fail closed on missing classification, authorization, drift, or tampering.
 - Output and context cost fall because full records live in generated references
   and appear only when continuity requires them; machine payloads remain private.
+- Credential-shaped tracked history is inspectable without turning the review
+  transcript into another secret-bearing artifact.
 - Evidence cannot survive state changes in v2, even if a later reviewer believes
   the change was unrelated. This is intentionally conservative for the alpha.
 - Standalone skills that need Git state carry the generated runtime locally.

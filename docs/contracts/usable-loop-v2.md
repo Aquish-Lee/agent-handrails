@@ -93,6 +93,14 @@ requires them. Source inspection is bounded to one changed source, at most 20
 context lines, and at most 240 output lines per command, with a private coverage
 ledger preventing accidental rereads.
 
+Changed-file content first passes through the bundled safe-diff preflight. It
+privately checks review-base and current content as well as the bounded diff.
+Sensitive paths, credential-bearing assignments, and credential-shaped tokens
+produce structural redaction only; historical, current, and replacement values
+must not enter the transcript. A redacted result cannot be bypassed through
+direct file, diff, history, search, or fixture output. Non-sensitive raw output
+remains bounded, and lock/generated content stays summary-only.
+
 ## Safety
 
 Stash, force branch deletion, deletion of a worktree containing results, reset,

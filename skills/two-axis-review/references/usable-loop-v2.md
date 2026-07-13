@@ -100,6 +100,17 @@ This skill owns semantic Outcome Fit and Engineering Quality judgment.
 The runtime owns inventory, canonicalization, digest, and drift checks.
 A high-assurance claim consumes the resulting exact Review Record.
 
+## Sensitive-content inspection
+
+Every changed-file content inspection starts with the bundled
+`scripts/safe_diff.py` preflight over the review base, current
+content, and bounded diff. A sensitive result permits structural
+redaction only; credential values never enter the transcript.
+The canonical sensitive-output policy is `structural-redaction-only`.
+Never bypass a redacted result with direct file, show, diff, search,
+or history output. Raw output requires a non-sensitive result for the
+exact path and state. Lock/generated raw output remains forbidden.
+
 ## Record shapes
 
 ### `outcome-reference`

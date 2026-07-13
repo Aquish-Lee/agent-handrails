@@ -145,6 +145,25 @@
         "digest-mismatch"
       ]
     },
+    "review-inspection": {
+      "changed_content_route": "bundled-safe-diff",
+      "preflight_inputs": [
+        "review-base-content",
+        "current-content",
+        "bounded-diff"
+      ],
+      "sensitive_detection": [
+        "sensitive-path",
+        "sensitive-assignment",
+        "credential-shaped-token",
+        "oversized-content"
+      ],
+      "sensitive_output": "structural-redaction-only",
+      "credential_value_output": "forbidden",
+      "bypass_after_sensitive_result": "forbidden",
+      "raw_output_requires": "non-sensitive-preflight-for-exact-path-and-state",
+      "lock_or_generated_raw_output": "forbidden-even-after-non-sensitive-preflight"
+    },
     "evidence-lifecycle": {
       "development_evidence_supports_claims": false,
       "claim_evidence_supports_claims_when": "fresh-and-exactly-bound",

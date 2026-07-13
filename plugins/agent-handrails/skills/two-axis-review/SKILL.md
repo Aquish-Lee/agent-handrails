@@ -68,6 +68,29 @@ Build a risk map from the Outcome, repository guidance, worktree/status facts,
 diff/numstat and commit summaries, changed interfaces or data paths, and
 available tests. Use it to choose inspection depth, not to omit candidates.
 
+Every changed-file content inspection starts with this preflight, one path per
+command:
+
+```bash
+python <this-skill-dir>/scripts/safe_diff.py \
+  --repository . --base <task-base> --path <candidate-path>
+```
+
+The preflight scans base content, current content, and the bounded diff privately.
+It emits raw diff content only after the exact path is non-sensitive. Before that
+result, do not use direct `git diff`, `git show`, `cat`, `sed`, `head`, `tail`, or
+`rg` content output for the path. `requires-hunk-selection` means rerun the
+preflight with `--hunk <n>`; `hunk-too-large` supplies a count for bounded
+`--hunk <n> --chunk <n>` calls. Neither result permits printing the broad diff.
+
+`redacted` means the path or content may carry credentials. Use only its key
+names, value classes, counts, and other structural facts. Never bypass a `redacted` result
+through direct file, diff, history, search, or test-fixture
+output, and never print removed, current, or replacement credential values.
+Inspect consumers and tests through their own preflight when more evidence is
+needed. A `raw` result never overrides the separate ban on raw lockfile or
+generated-artifact content.
+
 Inspect every classified candidate at least once on both Outcome Fit and
 Engineering Quality. For a tracked candidate, inspect every hunk; start with a
 targeted diff and adjacent tests, then widen into callers, shared invariants,

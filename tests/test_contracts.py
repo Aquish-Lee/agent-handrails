@@ -94,6 +94,13 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         runtime = (PROJECT_ROOT / "runtime" / "handrails_state.py").read_text(encoding="utf-8")
         self.assertNotIn("review_boundary_digest", runtime)
 
+    def test_review_inspection_policy_requires_sensitive_preflight(self) -> None:
+        policy = load_contract()["policies"]["review-inspection"]
+        self.assertEqual(policy["changed_content_route"], "bundled-safe-diff")
+        self.assertEqual(policy["sensitive_output"], "structural-redaction-only")
+        self.assertEqual(policy["credential_value_output"], "forbidden")
+        self.assertEqual(policy["bypass_after_sensitive_result"], "forbidden")
+
     def test_each_skill_has_standard_frontmatter_and_v2_binding(self) -> None:
         contract = load_contract()
         for name in sorted(SKILL_NAMES):
@@ -130,6 +137,18 @@ class UsableLoopV2ContractTests(unittest.TestCase):
                     text=True,
                 )
                 self.assertIn("inventory", completed.stdout)
+
+        safe_diff = (PROJECT_ROOT / "runtime" / "safe_diff.py").read_bytes()
+        local_safe_diff = PROJECT_ROOT / "skills" / "two-axis-review" / "scripts" / "safe_diff.py"
+        self.assertEqual(local_safe_diff.read_bytes(), safe_diff)
+        completed = subprocess.run(
+            [sys.executable, str(local_safe_diff), "--help"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.assertIn("credential-shaped values", completed.stdout)
 
     def test_generated_contract_projections_are_current(self) -> None:
         completed = subprocess.run(
@@ -234,6 +253,15 @@ class UsableLoopV2ContractTests(unittest.TestCase):
         self.assertIn("Never print a raw content diff for a lockfile or generated artifact", text)
         self.assertIn("summary of at most 40", text)
         self.assertIn("private target ledger", text)
+        self.assertIn("scripts/safe_diff.py", text)
+        self.assertIn("Every changed-file content inspection starts with this preflight", text)
+        self.assertIn("Never bypass a `redacted` result", text)
+
+        reference = (
+            PROJECT_ROOT / "skills" / "two-axis-review" / "references" / "usable-loop-v2.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Sensitive-content inspection", reference)
+        self.assertIn("structural-redaction-only", reference)
 
     def test_development_observation_keeps_inventory_private_by_default(self) -> None:
         text = (PROJECT_ROOT / "skills" / "feedback-loop" / "SKILL.md").read_text(encoding="utf-8")

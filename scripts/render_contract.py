@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "contracts" / "usable-loop-v2.json"
 RUNTIME_PATH = ROOT / "runtime" / "handrails_state.py"
+SAFE_DIFF_PATH = ROOT / "runtime" / "safe_diff.py"
 RUNTIME_SKILLS = {
     "branch-sandbox",
     "feedback-loop",
@@ -181,6 +182,7 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
             ]
         )
     if skill_name == "two-axis-review":
+        inspection = policies["review-inspection"]
         lines.extend(
             [
                 "## Review ownership",
@@ -188,6 +190,17 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
                 "This skill owns semantic Outcome Fit and Engineering Quality judgment.",
                 "The runtime owns inventory, canonicalization, digest, and drift checks.",
                 "A high-assurance claim consumes the resulting exact Review Record.",
+                "",
+                "## Sensitive-content inspection",
+                "",
+                "Every changed-file content inspection starts with the bundled",
+                "`scripts/safe_diff.py` preflight over the review base, current",
+                "content, and bounded diff. A sensitive result permits structural",
+                "redaction only; credential values never enter the transcript.",
+                f"The canonical sensitive-output policy is `{inspection['sensitive_output']}`.",
+                "Never bypass a redacted result with direct file, show, diff, search,",
+                "or history output. Raw output requires a non-sensitive result for the",
+                "exact path and state. Lock/generated raw output remains forbidden.",
                 "",
             ]
         )
@@ -213,6 +226,7 @@ def render_reference(skill_name: str, contract: dict[str, object]) -> str:
 def generated_files(contract: dict[str, object]) -> dict[Path, bytes]:
     result: dict[Path, bytes] = {}
     runtime = RUNTIME_PATH.read_bytes()
+    safe_diff = SAFE_DIFF_PATH.read_bytes()
     for skill_name in contract["managed_skills"]:
         skill_root = ROOT / "skills" / skill_name
         result[skill_root / "references" / "usable-loop-v2.md"] = render_reference(
@@ -220,6 +234,8 @@ def generated_files(contract: dict[str, object]) -> dict[Path, bytes]:
         ).encode("utf-8")
         if skill_name in RUNTIME_SKILLS:
             result[skill_root / "scripts" / "handrails_state.py"] = runtime
+        if skill_name == "two-axis-review":
+            result[skill_root / "scripts" / "safe_diff.py"] = safe_diff
     return result
 
 
@@ -227,7 +243,7 @@ def apply(files: dict[Path, bytes]) -> None:
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
-        if path.name == "handrails_state.py":
+        if path.name in {"handrails_state.py", "safe_diff.py"}:
             path.chmod(0o755)
 
 
