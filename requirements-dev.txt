@@ -1,5 +1,5 @@
 # Exact top-level development tools. `uv.lock` locks the complete environment.
 bandit==1.9.4
 PyYAML==6.0.3
-ruff==0.15.21
+ruff==0.16.1
 skills-ref==0.1.1; python_version >= "3.11"
